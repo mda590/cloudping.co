@@ -1,0 +1,20 @@
+{
+  "name": "aws-latency-ping-app",
+  "version": "1.0.0",
+  "description": "This function is deployed to ping AWS endpoints in every AWS region.",
+  "main": "index.js",
+  "dependencies": {
+    "aws-sdk": "^2.6.10",
+    "dynamodb-marshaler": "^2.0.0",
+    "tcp-ping": "^0.1.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "aws"
+  ],
+  "author": "Matt Adorjan",
+  "license": "MIT"
+}

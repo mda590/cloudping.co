@@ -1,0 +1,26 @@
+##  This template will pass through all path parameters and selected context information through to the integration endpoint via the body/payload. The message content is also included.
+#set($allParams = $input.params())
+{
+"body-json" : $input.json('$'),
+"params" : {
+#foreach($type in $allParams.keySet())
+    #set($params = $allParams.get($type))
+"$type" : {
+    #foreach($paramName in $params.keySet())
+    "$paramName" : "$util.escapeJavaScript($params.get($paramName))"
+        #if($foreach.hasNext),#end
+    #end
+}
+    #if($foreach.hasNext),#end
+#end
+},
+"context" : {
+    "api-id" : "$context.apiId",
+    "api-key" : "$context.identity.apiKey",
+    "http-method" : "$context.httpMethod",
+    "stage" : "$context.stage",
+    "request-id" : "$context.requestId",
+    "resource-id" : "$context.resourceId",
+    "resource-path" : "$context.resourcePath"
+    }
+}

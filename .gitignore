@@ -1,3 +1,30 @@
+*.zip
+node_modules/
+numpy*/
+frontend-source/
+backend-apiFunction/swagger/
+deploy.sh
+
+# Compiled Python files
+*.pyc
+
+# Folder view configuration files
+.DS_Store
+.DS_Store?
+Desktop.ini
+
+# Thumbnail cache files
+._*
+Thumbs.db
+ehthumbs.db
+
+# Files that might appear on external disks
+.Spotlight-V100
+.Trashes
+
+# VS Code configuration
+.vscode
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

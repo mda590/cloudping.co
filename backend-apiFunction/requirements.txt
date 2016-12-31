@@ -1,0 +1,4 @@
+boto3==1.4.1
+botocore==1.4.76
+numpy==1.11.3
+python-dateutil==2.6.0

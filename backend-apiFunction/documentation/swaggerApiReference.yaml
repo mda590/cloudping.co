@@ -1,0 +1,239 @@
+swagger: '2.0'
+info:
+  version: '1.0'
+  title: AWS Inter-Region Latency Monitoring
+  description: Records inter-region latency over a TCP connection between all AWS regions in the world.
+  contact:
+    name: Matt Adorjan
+    email: matt@mattadorjan.com
+    url: https://matt.adorjan.co
+host: api.cloudping.co
+basePath: /
+schemes:
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /averages:
+    get:
+      description: Returns all averages between all regions for the previous 24 hours
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: response with averages
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/avg'
+        default:
+          description: unexpected error
+          schema:
+            $ref: '#/definitions/errorModel'
+  /averages/day:
+    get:
+      description: Returns all averages between all regions for the previous 24 hours
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: response with averages
+          schema:
+            $ref: '#/definitions/avg'
+        default:
+          description: unexpected error
+          schema:
+            $ref: '#/definitions/errorModel'
+  /averages/day/{numdays}:
+    get:
+      description: Returns all averages between all regions for the requested number of previous days.
+      produces:
+        - application/json
+      parameters:
+        - name: numdays
+          in: path
+          description: Number of previous days to fetch and average
+          required: true
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: response with averages
+          schema:
+            $ref: '#/definitions/avg'
+        default:
+          description: unexpected error
+          schema:
+            $ref: '#/definitions/errorModel'
+  /averages/week:
+    get:
+      description: Returns all averages between all regions for the previous 1 week
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: response with averages
+          schema:
+            $ref: '#/definitions/avg'
+        default:
+          description: unexpected error
+          schema:
+            $ref: '#/definitions/errorModel'
+  /averages/week/{numweeks}:
+    get:
+      description: Returns all averages between all regions for the requested number of previous weeks.
+      produces:
+        - application/json
+      parameters:
+        - name: numweeks
+          in: path
+          description: Number of previous weeks to fetch and average
+          required: true
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: response with averages
+          schema:
+            $ref: '#/definitions/avg'
+        default:
+          description: unexpected error
+          schema:
+            $ref: '#/definitions/errorModel'
+  /averages/month:
+    get:
+      description: Returns all averages between all regions for the previous 1 month
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: response with averages
+          schema:
+            $ref: '#/definitions/avg'
+        default:
+          description: unexpected error
+          schema:
+            $ref: '#/definitions/errorModel'
+  /averages/month/{nummonths}:
+    get:
+      description: Returns all averages between all regions for the requested number of previous months.
+      produces:
+        - application/json
+      parameters:
+        - name: nummonths
+          in: path
+          description: Number of previous months to fetch and average
+          required: true
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: response with averages
+          schema:
+            $ref: '#/definitions/avg'
+        default:
+          description: unexpected error
+          schema:
+            $ref: '#/definitions/errorModel'
+  /query:
+    get:
+      description: Returns all averages for a specific region pair, based on query passed.
+      produces:
+        - application/json
+      parameters:
+        - name: request
+          in: body
+          schema:
+            $ref: '#/definitions/queryModel'
+          description: regionFrom=The source region to be used in the query;
+                        regionTo=The destination region to be used in the query.
+                        condOpr=Whether to return data greater than the provided timestamp
+                        or less than the provided timestamp.;
+                        timestamp=The time which should be used as a starting point for the query.
+                        This is used in conjunction with the condOpr to find results
+                        either greater than or less than this timestamp.
+          required: true
+      responses:
+        '200':
+          description: Response with results for specified region pair and timestamp.
+          schema:
+            $ref: '#/definitions/queryResponseModel'
+        default:
+          description: unexpected error
+          schema:
+            $ref: '#/definitions/errorModel'          
+definitions:
+  avg:
+    type: array
+    items:
+      $ref: '#/definitions/avgArray'
+  avgArray:
+    type: object
+    properties:
+      region:
+        type: string
+      averages:
+        type: array
+        items:
+          $ref: '#/definitions/individualAvg'    
+  individualAvg:
+    type: object
+    properties:
+      regionTo:
+        type: string
+      average:
+        type: number
+        format: float      
+  errorModel:
+    type: object
+    required:
+      - errorType
+      - message
+    properties:
+      errorType:
+        type: string
+      errorCode:
+        type: integer
+        format: int32
+      message:
+        type: string
+      httpCode:
+        type: integer
+        format: int32
+  queryModel:
+    type: object
+    required:
+      - regionFrom
+      - regionTo
+      - condOpr
+      - timestamp
+    properties:
+      regionFrom:
+        type: string
+      regionTo:
+        type: string
+      condOpr:
+        type: string
+      timestamp:
+        type: string
+  queryResponseModel:
+    type: object
+    properties:
+      regionFrom:
+        type: string
+      regionTo:
+        type: string
+      averages:
+        type: array
+        items:
+          $ref: '#/definitions/queryResponseAvgModel'
+  queryResponseAvgModel:
+    type: object
+    properties:
+      timestamp:
+        type: string
+      average:
+        type: number
+        format: float
