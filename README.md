@@ -29,7 +29,6 @@ The goal here is to provide a single source of truth for inter-region AWS region
 * Add city/location names whenever a region name is displayed (e.g. us-east-2 = Ohio)
 * Alphabetize the regions in the table.
 * Add API key
-* Turn on CORS for API gateway
 
 #### Additional Notes
 This project is in no way associated with Amazon or AWS. If you wish to report any issues with the project, please use the "Issues" feature within GitHub.

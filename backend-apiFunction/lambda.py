@@ -115,6 +115,52 @@ def getLatestAvgs(daysAgo, weeksAgo, keyCondOpr):
 
     return jsonResp
 
+def getQueryResults(regionTo, regionFrom, daysAgo, weeksAgo, keyCondOpr):
+    """Returns a JSON object with the requested averages.
+
+    Takes a certain number of days and/or weeks ago, the type of query to execute
+    (greater than or less than timestamp), and the region pair (to and from) for which to return averages.
+    All averages will be returned for the specific time period defined in the query.
+
+    Parameters
+    -----------
+    regionTo : string
+        Region which is the ping destination to return results for.
+    regionFrom : string
+        Region which is the source of the ping to return results for.
+    daysAgo : int
+        Number of days ago for which a timestamp should be returned.
+    weeksAgo : int
+        Number of weeks ago for which a timestamp should be returned.
+    keyCondOpr: string
+        The keyCond array defines the conditions for the queries executed against DDB.
+
+    Returns
+    -----------
+    json object
+        Formatted json object containing averages to be returned to API caller.
+
+    """
+    if(keyCondOpr == 'GT'):
+        keyCondInd = 0
+    elif(keyCondOpr == 'LT'):
+        keyCondInd = 1
+    else:
+        keyCondInd = 0
+
+    response = queryDB_regionTimestamp(regionFrom, getPastTimestamp(daysAgo, weeksAgo), keyCondInd)
+    jsonResp = '{"regionFrom":"' + regionFrom + '", "regionTo":"' + regionTo + '", "averages": ['
+
+    for record in response['Items']:
+        if(regionTo == record['regionTo']['S']):
+            jsonResp = jsonResp + '{"timestamp":"' + record['timestamp']['S'] + '", "average":"' + str(round(float(record['avg']['N']), 2)) + '"},'
+
+    jsonResp = jsonResp.rstrip(',')
+    jsonResp = jsonResp + ']}'
+    jsonResp = json.loads(jsonResp)
+
+    return jsonResp
+
 def getRegions():
     """
         Calls the AWS EC2 API to get the current list of AWS regions.
@@ -302,8 +348,13 @@ def lambda_handler(event, context):
 
         return getLatestAvgs(0, numMonths*4, 'GT')
 
-    elif(resourcePath == '/averages/query' and httpMethod == 'POST'):
-        query = event['body-json']
+    elif(resourcePath == '/query' and httpMethod == 'POST'):
+        try:
+            query = event['body-json']
+        except botocore.exceptions.ClientError as e:
+            return error_handler(e)
 
+        return getQueryResults(query['regionTo'], query['regionFrom'], query['daysAgo'], query['weeksAgo'], query['condOpr'])
+        
     else:
         return 'No functionality is available for that request.'

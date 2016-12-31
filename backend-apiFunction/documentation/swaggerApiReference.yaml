@@ -208,7 +208,8 @@ definitions:
       - regionFrom
       - regionTo
       - condOpr
-      - timestamp
+      - daysAgo
+      - weeksAgo
     properties:
       regionFrom:
         type: string
@@ -216,8 +217,12 @@ definitions:
         type: string
       condOpr:
         type: string
-      timestamp:
-        type: string
+      daysAgo:
+        type: integer
+        format: int32
+      weeksAgo:
+        type: integer
+        format: int32
   queryResponseModel:
     type: object
     properties:
