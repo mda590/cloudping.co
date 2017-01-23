@@ -27,8 +27,8 @@ The goal here is to provide a single source of truth for inter-region AWS region
 * Graph showing latency over time for user selected parameters (between regions, specific timeframes, etc.)
 * Refine the getLatestAvgs function in the API backend.
 * Add city/location names whenever a region name is displayed (e.g. us-east-2 = Ohio)
-* Alphabetize the regions in the table.
 * Add API key
+* Change averages calculation to include the average between 2 regions going both ways. This will avoid confusion of having us-east-1 -> us-east-2 having a different average than us-east-2 -> us-east-1.
 
 #### Additional Notes
 This project is in no way associated with Amazon or AWS. If you wish to report any issues with the project, please use the "Issues" feature within GitHub.
