@@ -12,6 +12,7 @@ var marshalItem = require('dynamodb-marshaler');
 const regions = [
 	'ap-northeast-1',   // Tokyo
 	'ap-northeast-2',   // Seoul
+	'ap-northeast-3',   // Osaka
 	'ap-south-1',       // Mumbai
 	'ap-southeast-1',   // Singapore
 	'ap-southeast-2',   // Sydney
