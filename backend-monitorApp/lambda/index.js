@@ -12,15 +12,20 @@ var marshalItem = require('dynamodb-marshaler');
 const regions = [
 	'ap-northeast-1',   // Tokyo
 	'ap-northeast-2',   // Seoul
+	'ap-northeast-3',   // Osaka
 	'ap-south-1',       // Mumbai
 	'ap-southeast-1',   // Singapore
 	'ap-southeast-2',   // Sydney
 	'ca-central-1',     // Canada Central
+	'cn-north-1',       // China (Beijing)
+	'cn-northwest-1',   // China (Ningxia)
 	'eu-central-1',     // Frankfurt
 	'eu-west-1',        // Ireland
 	'eu-west-2',        // London
 	'us-east-1',        // N Virginia
 	'us-east-2',        // Ohio
+	'us-gov-east-1',    // GovCloud (US-East)
+	'us-gov-west-1',    // GovCloud (US-West)
 	'us-west-1',        // N California
 	'us-west-2',        // Oregon
 	'sa-east-1',        // Brazil
