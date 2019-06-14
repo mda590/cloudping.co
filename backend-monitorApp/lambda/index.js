@@ -10,6 +10,7 @@ var tcpp = require('tcp-ping');
 var marshalItem = require('dynamodb-marshaler');
 
 const regions = [
+	'ap-east-1',        // Hong Kong
 	'ap-northeast-1',   // Tokyo
 	'ap-northeast-2',   // Seoul
 	'ap-south-1',       // Mumbai
