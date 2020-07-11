@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
+    integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+  {% if title %}
+  <title>{{ title }} | CloudPing - AWS Latency Monitoring</title>
+  {% else %}
+  <title>CloudPing - AWS Latency Monitoring</title>
+  {% endif %}
+  <style>
+    html {
+      position: relative;
+      min-height: 100%;
+    }
+
+    body {
+      /* Margin bottom by footer height */
+      margin-bottom: 60px;
+    }
+
+    .footer {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      /* Set the fixed height of the footer here */
+      height: 60px;
+      line-height: 60px;
+      /* Vertically center the text there */
+      background-color: #f5f5f5;
+    }
+    .region_title {
+      font-size: 80%;
+    }
+    .region_title em {
+      font-size: 90%;
+      color: #555555;
+    }
+    .table td {
+      text-align: center;   
+    }
+    .footer-image {
+      margin-right: 10px;
+    }
+    /* Colors for Latency Averages */
+    .red:before {
+      content: ' \25CF';
+      font-size: 20px;
+      color: #ff3300;
+      padding: 0px 5px 0px 5px;
+    }
+    .yellow:before {
+      content: ' \25CF';
+      font-size: 20px;
+      color: #e6e600;
+      padding: 0px 5px 0px 5px;
+    }
+    .green:before {
+      content: ' \25CF';
+      font-size: 20px;
+      color: #00e600;
+      padding: 0px 5px 0px 5px;
+    }
+    .colorlegend {
+      font-size: 12px;
+      padding-top: 2px;
+    }    
+  </style>
+
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">AWS Latency Monitoring</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText"
+      aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarText">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="/">Home <span class="sr-only">(current)</span></a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="/about">About</a>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown"
+            aria-haspopup="true" aria-expanded="false">
+            Enabled Regions
+          </a>
+          <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+            {% for region in regions_from %}
+            {% if 'gov' not in region['region'] and 'cn-' not in region['region'] %}
+            <a class="dropdown-item" href="#">{{ region['region_name'] }} ({{ region['region'] }})</a>
+            {% endif %}
+            {% endfor %}
+          </div>
+        </li>
+      </ul>
+      <span class="navbar-text">
+          <div align="right"><iframe src="https://ghbtns.com/github-btn.html?user=mda590&repo=cloudping.co&type=star&count=true" frameborder="0" scrolling="0" width="170px" height="20px"></iframe></div>
+        </span>
+    </div>
+  </nav>
+
+  <noscript>
+    <strong>We're sorry but CloudPing doesn't work properly without JavaScript enabled. Please enable it to
+      continue.</strong>
+  </noscript>
+  <div class="container">
+    <div id="app">
+      <div class="row" style="margin: 5px 0px 5px 0px;">
+      <div class="col-12">
+        <h2>About CloudPing</h2>
+        <ul>
+        <li>Who am I? My name is <a href="https://twitter.com/mda590">Matt</a>. I'm an AWS architect, and overall fan of all things cloud.</li>
+        <li>Why did I create this? Over time, as I've worked on global AWS deployments, I have often been faced with the question of which inter-region transactions will be faced with the most latency. I have been able to find a lot of static examples of previous testing completed, or anecdotal thoughts based on a region's location. I haven't been able to find any kind of dynamic, consistently updated, latency monitoring. The goal here is to provide a single source of truth for inter-region AWS region latency.</li>
+        <li>Please get in touch if you have any comments or suggestions. You can also use <a href="https://github.com/mda590/cloudping.co/issues">GitHub Issues</a> to submit comments, questions, or new feature requests.</li>
+        <li>More details on the project can be found in the <a href="https://github.com/mda590/cloudping.co">GitHub README</a>. This project is in no way associated with Amazon or AWS.</li>
+        </ul>
+      </div>
+      </div>
+    </div>
+    <!-- built files will be auto injected -->
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <img class="footer-image" src="/static/logo.png" width="40px" height="40px" title="Matt Adorjan" alt="Matt Adorjan Logo" />
+      <span class="text-muted">Questions? Comments? Concerns? Reach out to <a href="mailto:matt@ma.dev">matt@ma.dev</a>.</span>
+    </div>
+  </footer>
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
+    integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"
+    integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy"
+    crossorigin="anonymous"></script>
+</body>
+
+</html>

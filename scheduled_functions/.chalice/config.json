@@ -1,0 +1,11 @@
+{
+  "version": "2.0",
+  "app_name": "scheduled_functions",
+  "autogen_policy": false,
+  "stages": {
+    "dev": {}
+  },
+  "layers": [
+    "arn:aws:lambda:us-east-2:259788987135:layer:AWSLambda-Python37-SciPy1x:2"
+  ]
+}

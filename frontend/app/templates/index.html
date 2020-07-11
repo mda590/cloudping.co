@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
+    integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+  {% if title %}
+  <title>{{ title }} | CloudPing - AWS Latency Monitoring</title>
+  {% else %}
+  <title>CloudPing - AWS Latency Monitoring</title>
+  {% endif %}
+  <style>
+    html {
+      position: relative;
+      min-height: 100%;
+    }
+
+    body {
+      /* Margin bottom by footer height */
+      margin-bottom: 60px;
+    }
+
+    .footer {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      /* Set the fixed height of the footer here */
+      height: 60px;
+      line-height: 60px;
+      /* Vertically center the text there */
+      background-color: #f5f5f5;
+    }
+    .region_title {
+      font-size: 80%;
+    }
+    th.rotate {
+      height:175px;
+      white-space: nowrap;
+      position:relative;
+    }
+    th.rotate > div {
+      transform: rotate(270deg);
+      position:absolute;
+      left:0;
+      right:0;
+      top: 110px;
+      margin:auto;
+    }
+    .region_title em {
+      font-size: 90%;
+      color: #555555;
+    }
+    .table td {
+      text-align: center;
+      vertical-align: middle;
+    }
+    .footer-image {
+      margin-right: 10px;
+    }
+    /* Colors for Latency Averages */
+    td.red {
+      background-color: #FFCCCC;
+    }
+    td.yellow {
+      background-color: #FFFFCC;
+    }
+    td.green {
+      background-color: #CCFFCC;
+    }
+    .redlegend:before {
+      content: ' \25CF';
+      font-size: 20px;
+      color: #ff3300;
+      padding: 0px 5px 0px 5px;
+    }
+    .yellowlegend:before {
+      content: ' \25CF';
+      font-size: 20px;
+      color: #e6e600;
+      padding: 0px 5px 0px 5px;
+    }
+    .greenlegend:before {
+      content: ' \25CF';
+      font-size: 20px;
+      color: #00e600;
+      padding: 0px 5px 0px 5px;
+    }
+    .colorlegend {
+      font-size: 12px;
+      padding-top: 2px;
+    }
+  </style>
+  <script>
+    function reloadGrid() {
+      var percentile = document.getElementById("percentileSelect");
+      var timeframe = document.getElementById("timeframeSelect");
+      var p_select = percentile.options[percentile.selectedIndex].value;
+      var t_select = timeframe.options[timeframe.selectedIndex].value;
+      location = "/grid/" + p_select + "/timeframe/" + t_select;
+      return false;
+    }
+    function setValue() {
+      var selected_percentile = "{{ selected_percentile }}"
+      var selected_timeframe = "{{ selected_timeframe }}"
+      var percentile = document.getElementById("percentileSelect");
+      var timeframe = document.getElementById("timeframeSelect");
+      for (var i = 0; i < percentile.options.length; i++) {
+        if (percentile.options[i].value == selected_percentile) {
+            percentile.options[i].selected = true;
+        }
+      }
+      for (var i = 0; i < timeframe.options.length; i++) {
+        if (timeframe.options[i].value == selected_timeframe) {
+            timeframe.options[i].selected = true;
+        }
+      }
+    }
+    window.onload = function(){
+      setValue();
+    }    
+  </script>
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="#">AWS Latency Monitoring</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText"
+      aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarText">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item active">
+          <a class="nav-link" href="/">Home <span class="sr-only">(current)</span></a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/about">About</a>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown"
+            aria-haspopup="true" aria-expanded="false">
+            Enabled Regions
+          </a>
+          <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+            {% for region in regions_from %}
+            {% if 'gov' not in region['region'] and 'cn-' not in region['region'] %}
+            <a class="dropdown-item" href="#">{{ region['region_name'] }} ({{ region['region'] }})</a>
+            {% endif %}
+            {% endfor %}
+          </div>
+        </li>
+      </ul>
+      <span class="navbar-text">
+          <div align="right"><iframe src="https://ghbtns.com/github-btn.html?user=mda590&repo=cloudping.co&type=star&count=true" frameborder="0" scrolling="0" width="170px" height="20px"></iframe></div>
+        </span>
+    </div>
+  </nav>
+
+  <noscript>
+    <strong>We're sorry but CloudPing doesn't work properly without JavaScript enabled. Please enable it to
+      continue.</strong>
+  </noscript>
+  <div class="container-fluid">
+    <div id="app">
+        <form onsubmit="return reloadGrid();">
+            <div class="row" style="margin: 5px 0px 5px 0px;">
+              <div class="col-7"></div>
+              <div class="col-2">
+                  <label for="percentileSelect">Percentile</label>
+                  <select class="form-control" id="percentileSelect">
+                      <option value="p_10">10th Percentile</option>
+                      <option value="p_25">25th Percentile</option>
+                      <option value="p_50">50th Percentile</option>
+                      <option value="p_75">75th Percentile</option>
+                      <option value="p_90">90th Percentile</option>
+                      <option value="p_98">98th Percentile</option>
+                      <option value="p_99">99th Percentile</option>
+                      <option value="latency">Average (Legacy)</option>
+                    </select>
+              </div>
+              <div class="col-2">
+                  <label for="timeframeSelect">Timeframe</label>
+                  <select class="form-control" id="timeframeSelect">
+                      <option value="1D">1 Day</option>
+                      <option value="1W">1 Week</option>
+                      <option value="1M">1 Month</option>
+                      <option value="1Y">1 Year</option>
+                    </select>
+              </div>
+              <div class="col-1">
+                  <button type="submit" class="btn btn-primary btn-sm" id="reloadButton" style="margin-top: 35px;">Reload Grid</button>
+              </div>
+            </div>
+          </form>
+      <table class="table table-bordered table-sm">
+        <thead class="thead-light">
+          <tr>
+            <th style="padding: 0px;" class="th_msg">
+              <table align="left" style="width: 100%" class="loc_table">
+                <tr>
+                  <td class="destination">Destination Region</td>
+                </tr>
+                <tr>
+                  <td class="source" style="background-color: #fff;">Source Region</td>
+                </tr>
+              </table>
+            </th>
+            {% for region_to in regions_to %}
+
+            <th scope="col" class="region_title rotate"><div><span>{{ region_to['region_name'] }}<br /> <em>{{ region_to['region'] }}</em></span></div></th>
+
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for region_from in regions_from %}
+          <tr>
+            <th scope="row" class="region_title">{{ region_from['region_name'] }}<br /> <em>{{ region_from['region'] }}</em></th>
+            {% for region_to in regions_to %}
+            {% set val = values[region_from['region']][region_to['region']][show_data] %}
+
+            {% if val < 100 %}<td class="green">{{ val }}</td>
+            {% elif val <= 180 and val >= 100 %}<td class="yellow">{{ val }}</td>
+            {% else %}<td class="red">{{ val }}</td>{% endif %}
+            {% endfor %}
+          </tr>
+
+
+          {% endfor %}
+        </tbody>
+      </table>
+      <div align="center" class="colorlegend" v-show="!loading">
+          <span>Latency:</span>
+          <span class="greenlegend"> < 100ms</span>
+          <span class="yellowlegend"> 100-180ms </span>
+          <span class="redlegend"> > 180ms </span><br />
+          <em>All times are in milliseconds. All times are round trip ping times.</em>
+        </div>
+    </div>
+    <!-- built files will be auto injected -->
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <img class="footer-image" src="/static/logo.png" width="40px" height="40px" title="Matt Adorjan" alt="Matt Adorjan Logo" />
+      <span class="text-muted">Questions? Comments? Concerns? Reach out to <a href="mailto:matt@ma.dev">matt@ma.dev</a>.</span>
+    </div>
+  </footer>
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
+    integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"
+    integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy"
+    crossorigin="anonymous"></script>
+</body>
+
+</html>

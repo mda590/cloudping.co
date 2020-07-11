@@ -1,0 +1,24 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": "dynamodb:BatchWriteItem",
+            "Resource": "arn:aws:dynamodb:us-east-2:506666621600:table/PingTest",
+            "Effect": "Allow"
+        },
+        {
+            "Action": "ec2:DescribeRegions",
+            "Resource": "*",
+            "Effect": "Allow"
+        },
+        {
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+            ],
+            "Resource": "arn:aws:logs:*:*:*",
+            "Effect": "Allow"
+        }
+    ]
+}

@@ -1,0 +1,8 @@
+{
+  "version": "2.0",
+  "app_name": "ping_from_region",
+  "autogen_policy": false,
+  "stages": {
+    "prod": {}
+  }
+}
