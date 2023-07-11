@@ -1,5 +1,5 @@
 from boto3.dynamodb.conditions import Key, Attr
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, jsonify, render_template, request, redirect, url_for
 
 import boto3
 import json
@@ -81,16 +81,19 @@ def grid(show_data, timeframe):
             'p_99': round(float(item['p_99']), 2),
         }
 
-    return render_template(
-        'index.html',
-        title='Home', 
-        values=return_data,
-        regions_from=enabled_regions,
-        regions_to=enabled_regions_to,
-        show_data=show_data,
-        selected_percentile=show_data,
-        selected_timeframe=timeframe
-    )
+    if request.accept_mimetypes.accept_json:
+        return jsonify(return_data)
+    else:
+        return render_template(
+            'index.html',
+            title='Home', 
+            values=return_data,
+            regions_from=enabled_regions,
+            regions_to=enabled_regions_to,
+            show_data=show_data,
+            selected_percentile=show_data,
+            selected_timeframe=timeframe
+        )
 
 @app.route('/about')
 def about():
