@@ -16,6 +16,7 @@ const regions = [
 	'ap-southeast-1',   // Singapore
 	'ap-southeast-2',   // Sydney
 	'ca-central-1',     // Canada Central
+	'ca-west-1',        // Canada West
 	'eu-central-1',     // Frankfurt
 	'eu-west-1',        // Ireland
 	'eu-west-2',        // London
