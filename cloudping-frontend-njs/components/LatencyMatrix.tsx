@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import StripeButton from './StripeButton';
 
 interface LatencyData {
   metadata: {
@@ -63,6 +64,7 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
   return (
     <div className="w-full max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold text-white">AWS Region Latency Matrix</h1>
         {isLoading && (
           <div className="text-sm text-zinc-400 flex items-center gap-2">
             <div className="animate-spin h-4 w-4 border-2 border-zinc-500 border-t-zinc-200 rounded-full"></div>
@@ -77,41 +79,44 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
         </div>
       )}
 
-      <div className="flex gap-4 mb-6">
-        <select 
-          value={selectedPercentile}
-          onChange={(e) => {
-            setSelectedPercentile(e.target.value);
-            updateData();
-          }}
-          disabled={isLoading}
-          className="bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-white w-36 text-sm disabled:opacity-50"
-        >
-          {['p_10', 'p_25', 'p_50', 'p_75', 'p_90', 'p_98', 'p_99'].map((p) => (
-            <option key={p} value={p}>
-              {p.toUpperCase().replace('_', '')}
-            </option>
-          ))}
-        </select>
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex gap-4">
+          <select 
+            value={selectedPercentile}
+            onChange={(e) => {
+              setSelectedPercentile(e.target.value);
+              updateData();
+            }}
+            disabled={isLoading}
+            className="bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-white w-36 text-sm disabled:opacity-50"
+          >
+            {['p_10', 'p_25', 'p_50', 'p_75', 'p_90', 'p_98', 'p_99'].map((p) => (
+              <option key={p} value={p}>
+                {p.toUpperCase().replace('_', '')}
+              </option>
+            ))}
+          </select>
 
-        <select
-          value={selectedTimeframe}
-          onChange={(e) => {
-            setSelectedTimeframe(e.target.value);
-            updateData();
-          }}
-          disabled={isLoading}
-          className="bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-white w-36 text-sm disabled:opacity-50"
-        >
-          <option value="1D">1 Day</option>
-          <option value="1W">1 Week</option>
-          <option value="1M">1 Month</option>
-          <option value="1Y">1 Year</option>
-        </select>
+          <select
+            value={selectedTimeframe}
+            onChange={(e) => {
+              setSelectedTimeframe(e.target.value);
+              updateData();
+            }}
+            disabled={isLoading}
+            className="bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-white w-36 text-sm disabled:opacity-50"
+          >
+            <option value="1D">1 Day</option>
+            <option value="1W">1 Week</option>
+            <option value="1M">1 Month</option>
+            <option value="1Y">1 Year</option>
+          </select>
+        </div>
+        <StripeButton />
       </div>
 
       <div className="overflow-x-auto border border-zinc-700 rounded">
-        <table className="w-full border-collapse text-sm">
+        <table className="w-full border-collapse text-xs">
           <thead>
             <tr>
               <th className="p-2 border border-zinc-700 bg-zinc-800 text-white text-left sticky left-0 z-10">To \ From</th>

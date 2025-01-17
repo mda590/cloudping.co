@@ -1,0 +1,26 @@
+.stripeButtonWrapper :global(stripe-buy-button) {
+  --button-height: 32px !important;
+  --button-width: auto !important;
+  --button-border-radius: 4px !important;
+  --button-raised-shadow: none !important;
+}
+
+.stripeButtonWrapper :global(stripe-buy-button) > div {
+  padding: 0 !important;
+}
+
+.stripeButtonWrapper :global(stripe-buy-button) button {
+  background-color: rgb(63 63 70) !important;
+  border: 1px solid rgb(82 82 91) !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 4px 12px !important;
+  font-size: 14px !important;
+  color: white !important;
+  box-shadow: none !important;
+}
+
+.stripeButtonWrapper :global(stripe-buy-button) button:hover {
+  background-color: rgb(82 82 91) !important;
+  border-color: rgb(82 82 91) !important;
+}
