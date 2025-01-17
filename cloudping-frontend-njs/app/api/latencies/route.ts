@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const response = await fetch(
-      `https://api.cloudping.co/latencies?percentile=${percentile}&timeframe=${timeframe}`,
+      `https://your-api-endpoint/api/v1/latencies?percentile=${percentile}&timeframe=${timeframe}`,
       {
         headers: {
           'x-api-key': API_KEY || '',
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     
     return NextResponse.json(data);
-  } catch (error) {
+  } catch (err) {
     return NextResponse.json(
       { error: 'Failed to fetch latency data' },
       { status: 500 }

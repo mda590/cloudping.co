@@ -10,17 +10,15 @@ export default function AboutPage() {
           <a href="https://ma.tt" className="text-blue-400 hover:text-blue-300">
             Matt
           </a>
-          . I'm an AWS architect, and overall fan of all things cloud.
+          . I&apos;m an AWS architect, and overall fan of all things cloud.
         </li>
         
         <li>
-          Why did I create this? Over time, as I've worked on global AWS deployments, 
+          Why did I create this? Over time, as I&apos;ve worked on global AWS deployments, 
           I have often been faced with the question of which inter-region transactions 
-          will be faced with the most latency. I have been able to find a lot of static 
-          examples of previous testing completed, or anecdotal thoughts based on a region's 
-          location. I haven't been able to find any kind of dynamic, consistently updated, 
-          latency monitoring. The goal here is to provide a single source of truth for 
-          inter-region AWS region latency.
+          will be faced with the most latency. I haven&apos;t been able to find any kind of dynamic, 
+          consistently updated, latency monitoring. The goal here is to provide a single source 
+          of truth for inter-region AWS region latency.
         </li>
         
         <li>
