@@ -7,7 +7,7 @@ export default function AboutPage() {
       <ul className="space-y-6 text-zinc-200">
         <li>
           Who am I? My name is{' '}
-          <a href="https://ma.tt" className="text-blue-400 hover:text-blue-300">
+          <a href="https://twitter.com/mattadorjan" className="text-blue-400 hover:text-blue-300">
             Matt
           </a>
           . I&apos;m an AWS architect, and overall fan of all things cloud.
