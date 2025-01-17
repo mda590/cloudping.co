@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const response = await fetch(
-      `https://your-api-endpoint/api/v1/latencies?percentile=${percentile}&timeframe=${timeframe}`,
+      `https://api.cloudping.co/latencies?percentile=${percentile}&timeframe=${timeframe}`,
       {
         headers: {
           'x-api-key': API_KEY || '',
