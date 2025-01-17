@@ -4,5 +4,10 @@
   "autogen_policy": false,
   "stages": {
     "prod": {}
-  }
+  },
+  "tags": {
+    "application": "cloudping",
+    "component": "ping_from_region"
+  },
+  "lambda_timeout": 180
 }

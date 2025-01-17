@@ -1,0 +1,22 @@
+{
+  "resources": [
+    {
+      "name": "ping_role",
+      "resource_type": "iam_role",
+      "role_arn": "arn:aws:iam::506666621600:role/ping_from_region-prod-ping",
+      "role_name": "ping_from_region-prod-ping"
+    },
+    {
+      "name": "ping",
+      "resource_type": "lambda_function",
+      "lambda_arn": "arn:aws:lambda:us-east-2:506666621600:function:ping_from_region-prod-ping"
+    },
+    {
+      "name": "ping-event",
+      "resource_type": "cloudwatch_event",
+      "rule_name": "ping_from_region-prod-ping-event"
+    }
+  ],
+  "schema_version": "2.0",
+  "backend": "api"
+}

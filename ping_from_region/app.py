@@ -36,15 +36,73 @@ def getResults(failed, count, passed):
     # avg min max port region regionTo attempts address
     # results list: [{ "seq" "time"}]
 
-def write_results(results):
-    client = boto3.client('dynamodb', region_name="us-east-2")      # DynamoDB Table is always in us-east-2
-    response = client.batch_write_item(
-        RequestItems={
-            'PingTest': results
-        }
-    )
+def chunk_list(lst, chunk_size):
+    """Split a list into smaller chunks of specified size"""
+    return [lst[i:i + chunk_size] for i in range(0, len(lst), chunk_size)]
 
-app.schedule(Cron("0", "0,6,12,18", "*", "*", "?", "*"))
+def handle_unprocessed_items(client, unprocessed_items, max_retries=3):
+    """Handle any unprocessed items with exponential backoff"""
+    items = unprocessed_items
+    retries = 0
+    base_delay = 0.1  # 100ms
+
+    while items and retries < max_retries:
+        # Exponential backoff
+        delay = base_delay * (2 ** retries)
+        time.sleep(delay)
+        
+        try:
+            response = client.batch_write_item(RequestItems=items)
+            items = response.get('UnprocessedItems', {})
+            retries += 1
+            
+            if items:
+                print(f"Retry {retries}: {len(items)} items remaining")
+        except Exception as e:
+            print(f"Error during retry: {str(e)}")
+            raise
+
+    if items:
+        print(f"Warning: {len(items)} items remained unprocessed after all retries")
+    
+    return items
+
+def write_results(results):
+    """Write results to DynamoDB with chunking and retry logic"""
+    # DynamoDB Table is always in us-east-2
+    client = boto3.client('dynamodb', region_name="us-east-2")
+    
+    # Split into chunks of 25 (DynamoDB's limit)
+    chunk_size = 25
+    chunks = chunk_list(results, chunk_size)
+    
+    print(f"Split {len(results)} items into {len(chunks)} chunks")
+    
+    # Process each chunk
+    for i, chunk in enumerate(chunks, 1):
+        try:
+            print(f"Processing chunk {i} of {len(chunks)}")
+            response = client.batch_write_item(
+                RequestItems={
+                    'PingTest': chunk
+                }
+            )
+            
+            # Handle any unprocessed items
+            if response.get('UnprocessedItems'):
+                print("Handling unprocessed items...")
+                unprocessed = handle_unprocessed_items(
+                    client, 
+                    response['UnprocessedItems']
+                )
+                if unprocessed:
+                    print(f"Warning: Some items in chunk {i} were not processed")
+                    
+        except Exception as e:
+            print(f"Error processing chunk {i}: {str(e)}")
+            raise
+
+@app.schedule(Cron("0", "0,6,12,18", "*", "*", "?", "*"))
 def ping(event):
     port = 443
     regions = get_regions()
