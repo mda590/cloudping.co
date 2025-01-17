@@ -1,0 +1,10 @@
+{
+  "version": "2.0",
+  "app_name": "cloudping-api",
+  "autogen_policy": false,
+  "stages": {
+    "prod": {
+      "api_gateway_stage": "v1"
+    }
+  }
+}

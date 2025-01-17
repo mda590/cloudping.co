@@ -2,3 +2,6 @@
 .chalice/venv/
 __pycache__/
 credentials
+.aider*
+.README*
+.DS_Store

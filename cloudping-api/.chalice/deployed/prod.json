@@ -1,0 +1,23 @@
+{
+  "resources": [
+    {
+      "name": "api_handler_role",
+      "resource_type": "iam_role",
+      "role_arn": "arn:aws:iam::506666621600:role/cloudping-api-prod-api_handler",
+      "role_name": "cloudping-api-prod-api_handler"
+    },
+    {
+      "name": "api_handler",
+      "resource_type": "lambda_function",
+      "lambda_arn": "arn:aws:lambda:us-east-2:506666621600:function:cloudping-api-prod"
+    },
+    {
+      "name": "rest_api",
+      "resource_type": "rest_api",
+      "rest_api_id": "qq1pwh7bv4",
+      "rest_api_url": "https://qq1pwh7bv4.execute-api.us-east-2.amazonaws.com/v1/"
+    }
+  ],
+  "schema_version": "2.0",
+  "backend": "api"
+}
