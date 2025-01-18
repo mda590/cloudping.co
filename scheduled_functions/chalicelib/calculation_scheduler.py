@@ -45,9 +45,8 @@ def schedule(calc_func_name):
                     print(lambda_response['FunctionError'], lambda_response['StatusCode'])
                     sys.exit(1)
                 calculated_averages = res_json = json.loads(lambda_response['Payload'].read().decode("utf-8"))
-                print(calculated_averages)
-                # Store data received back in DynamoDB
 
+                # Store data received back in DynamoDB
                 for avg in calculated_averages[region_id]:
                     region_to = avg['region_to']
                     avg_latency = avg['avg_latency']
