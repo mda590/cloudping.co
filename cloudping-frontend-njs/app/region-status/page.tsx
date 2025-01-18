@@ -1,5 +1,15 @@
 // app/region-status/page.tsx
-async function getRegionStatus() {
+
+interface RegionStatus {
+  region_name: string;
+  ping_function_exists: boolean;
+  is_opt_in: boolean;
+  earliest_data_timestamp: string;
+  most_recent_data_timestamp: string;
+  status: 'ENABLED_BY_DEFAULT' | 'ENABLED';
+}
+
+async function getRegionStatus(): Promise<RegionStatus[]> {
   const res = await fetch('https://api.cloudping.co/regions', {
     next: { revalidate: 300 } // Cache for 5 minutes
   });
@@ -9,7 +19,9 @@ async function getRegionStatus() {
   }
   
   const data = await res.json();
-  return data.sort((a: any, b: any) => a.region_name.localeCompare(b.region_name));
+  return data.sort((a: RegionStatus, b: RegionStatus) => 
+    a.region_name.localeCompare(b.region_name)
+  );
 }
 
 export default async function RegionStatusPage() {
@@ -31,7 +43,7 @@ export default async function RegionStatusPage() {
             </tr>
           </thead>
           <tbody>
-            {regions.map((region: any) => (
+            {regions.map((region) => (
               <tr key={region.region_name}>
                 <td className="p-3 border border-zinc-700">
                   <span className="text-white font-medium">{region.region_name}</span>
