@@ -1,47 +1,48 @@
 {
-  "Version": "2012-10-17",
-  "Statement": [
-      {
-          "Action": [
-              "logs:CreateLogGroup",
-              "logs:CreateLogStream",
-              "logs:PutLogEvents"
-          ],
-          "Resource": "arn:aws:logs:*:*:*",
-          "Effect": "Allow"
-      },
-      {
-          "Action": [
-              "dynamodb:Scan",
-              "dynamodb:PutItem",
-              "dynamodb:Query"
-          ],
-          "Resource": [
-              "arn:aws:dynamodb:us-east-2:506666621600:table/PingTest",
-              "arn:aws:dynamodb:us-east-2:506666621600:table/cloudping_regions",
-              "arn:aws:dynamodb:us-east-2:506666621600:table/cloudping_stored_avgs",
-              "arn:aws:dynamodb:us-east-2:506666621600:table/PingTest/*",
-              "arn:aws:dynamodb:us-east-2:506666621600:table/cloudping_regions/*",
-              "arn:aws:dynamodb:us-east-2:506666621600:table/cloudping_stored_avgs/*"
-          ],
-          "Effect": "Allow"
-      },
-      {
-          "Action": [
-              "lambda:InvokeFunction"
-          ],
-          "Resource": "*",
-          "Effect": "Allow"
-      },
-      {
-        "Action": [
-          "account:ListRegions",
-          "account:EnableRegion",
-          "ec2:DescribeRegions",
-          "sts:GetCallerIdentity"
-        ],
-        "Resource": "*",
-        "Effect": "Allow"
-    }
-  ]
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+            ],
+            "Resource": "arn:aws:logs:*:*:*",
+            "Effect": "Allow"
+        },
+        {
+            "Action": [
+                "dynamodb:Scan",
+                "dynamodb:PutItem",
+                "dynamodb:Query"
+            ],
+            "Resource": [
+                "arn:aws:dynamodb:us-east-2:506666621600:table/PingTest",
+                "arn:aws:dynamodb:us-east-2:506666621600:table/cloudping_regions",
+                "arn:aws:dynamodb:us-east-2:506666621600:table/cloudping_regions_enhanced",
+                "arn:aws:dynamodb:us-east-2:506666621600:table/cloudping_stored_avgs",
+                "arn:aws:dynamodb:us-east-2:506666621600:table/PingTest/*",
+                "arn:aws:dynamodb:us-east-2:506666621600:table/cloudping_regions/*",
+                "arn:aws:dynamodb:us-east-2:506666621600:table/cloudping_stored_avgs/*"
+            ],
+            "Effect": "Allow"
+        },
+        {
+            "Action": [
+                "lambda:InvokeFunction"
+            ],
+            "Resource": "*",
+            "Effect": "Allow"
+        },
+        {
+            "Action": [
+                "account:ListRegions",
+                "account:EnableRegion",
+                "ec2:DescribeRegions",
+                "sts:GetCallerIdentity"
+            ],
+            "Resource": "*",
+            "Effect": "Allow"
+        }
+    ]
 }

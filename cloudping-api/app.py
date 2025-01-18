@@ -61,6 +61,12 @@ def get_region_status():
         print(f"Error getting region status: {str(e)}")
         return {}
 
+def get_region_status_table():
+    dynamodb = boto3.resource('dynamodb', region_name="us-east-2")
+    regions_table_enhanced = dynamodb.Table('cloudping_regions_enhanced')
+    regions_enhanced_response = regions_table_enhanced.scan()
+    return regions_enhanced_response
+
 @app.route('/latencies')
 def get_latencies():
     """Get latency matrix for all or specific regions."""
@@ -187,38 +193,6 @@ def get_history():
                     'Access-Control-Allow-Origin': '*'}
         )
 
-@app.route('/regions')
-def get_regions():
-    """Get list of available regions."""
-    try:
-        # Query DynamoDB for unique regions
-        response = regions_table.query(
-            IndexName='active_from-region-index',
-            KeyConditionExpression=Key('active_from').eq('True'),
-            ScanIndexForward=True
-        )
-
-        # Extract unique regions from the response
-        regions = set()
-        for item in response.get('Items', []):
-            regions.add(item['region'])
-
-        result = {
-            "regions": sorted(list(regions))
-        }
-
-        return Response(body=result,
-                      headers={'Content-Type': 'application/json',
-                              'Access-Control-Allow-Origin': '*'})
-
-    except Exception as e:
-        return Response(
-            body={'error': str(e)},
-            status_code=500,
-            headers={'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'}
-        )
-
 @app.route('/status')
 def get_status():
     """Get API status and latest data timestamp."""
@@ -263,32 +237,30 @@ def get_status():
             }
         )
 
-@app.route('/status_regions')
-def status_regions():
+@app.route('/regions')
+def regions():
     """
-    Optional endpoint to manually check the status of regions.
+    Endpoint to return the status of all of the regions available in CloudPing.
     """
-    all_regions = get_all_regions()
-    region_status = get_region_status()
-    
-    # Categorize regions
-    opt_in_regions = []
-    default_regions = []
-    
-    for region, info in region_status.items():
-        if info['is_opt_in']:
-            opt_in_regions.append({
-                'region': region,
-                'status': info['status']
-            })
-        else:
-            default_regions.append({
-                'region': region,
-                'status': info['status']
-            })
-    
-    return {
-        'total_regions': len(all_regions),
-        'opt_in_regions': opt_in_regions,
-        'default_regions': default_regions
-    }
+    try:
+        regions = get_region_status_table()
+        if 'Items' in regions:
+            regions = regions['Items']
+
+        return Response(
+            regions,
+            headers={
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+            }
+        )
+
+    except Exception as e:
+        return Response(
+            body={'error': str(e)},
+            status_code=500,
+            headers={
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            }
+        )
