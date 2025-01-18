@@ -9,5 +9,5 @@
     "application": "cloudping",
     "component": "ping_from_region"
   },
-  "lambda_timeout": 180
+  "lambda_timeout": 300
 }
