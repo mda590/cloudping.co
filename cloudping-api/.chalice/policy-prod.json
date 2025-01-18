@@ -32,6 +32,16 @@
           ],
           "Resource": "*",
           "Effect": "Allow"
-      }
+      },
+      {
+        "Action": [
+          "account:ListRegions",
+          "account:EnableRegion",
+          "ec2:DescribeRegions",
+          "sts:GetCallerIdentity"
+        ],
+        "Resource": "*",
+        "Effect": "Allow"
+    }
   ]
 }

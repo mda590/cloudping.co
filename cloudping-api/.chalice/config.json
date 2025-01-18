@@ -6,5 +6,9 @@
     "prod": {
       "api_gateway_stage": "v1"
     }
+  },
+"tags": {
+    "application": "cloudping",
+    "component": "api"
   }
 }

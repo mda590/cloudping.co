@@ -1,6 +1,7 @@
 from chalice import Chalice, Response
 from chalice.app import BadRequestError
 from typing import Optional, Dict, List
+from botocore.exceptions import ClientError
 import boto3
 from datetime import datetime, timedelta
 from boto3.dynamodb.conditions import Key, Attr
@@ -21,6 +22,44 @@ def validate_params(percentile: Optional[str], timeframe: Optional[str]) -> None
         raise BadRequestError(f"Invalid percentile. Must be one of: {', '.join(VALID_PERCENTILES)}")
     if timeframe and timeframe not in VALID_TIMEFRAMES:
         raise BadRequestError(f"Invalid timeframe. Must be one of: {', '.join(VALID_TIMEFRAMES)}")
+
+def get_account_id():
+    """Get the current AWS account ID."""
+    sts = boto3.client('sts')
+    return sts.get_caller_identity()['Account']
+
+def get_all_regions():
+    """Get a list of all AWS regions."""
+    ec2 = boto3.client('ec2')
+    regions = [region['RegionName'] for region in ec2.describe_regions()['Regions']]
+    return regions
+
+def get_region_status():
+    """
+    Get the status of all regions, separating them into opt-in and default regions.
+    Returns a dict with region statuses and whether they're opt-in regions.
+    """
+    client = boto3.client('account')
+    
+    try:
+        paginator = client.get_paginator('list_regions')
+        page_iterator = paginator.paginate()
+        region_status = {}
+        
+        for page in page_iterator:
+            for region in page['Regions']:
+                region_name = region['RegionName']
+                status = region['RegionOptStatus']
+                is_opt_in = True if status != "ENABLED_BY_DEFAULT" else False
+
+                region_status[region_name] = {
+                    'status': status,
+                    'is_opt_in': is_opt_in
+                }
+        return region_status
+    except ClientError as e:
+        print(f"Error getting region status: {str(e)}")
+        return {}
 
 @app.route('/latencies')
 def get_latencies():
@@ -223,3 +262,33 @@ def get_status():
                 'Access-Control-Allow-Origin': '*'
             }
         )
+
+@app.route('/status_regions')
+def status_regions():
+    """
+    Optional endpoint to manually check the status of regions.
+    """
+    all_regions = get_all_regions()
+    region_status = get_region_status()
+    
+    # Categorize regions
+    opt_in_regions = []
+    default_regions = []
+    
+    for region, info in region_status.items():
+        if info['is_opt_in']:
+            opt_in_regions.append({
+                'region': region,
+                'status': info['status']
+            })
+        else:
+            default_regions.append({
+                'region': region,
+                'status': info['status']
+            })
+    
+    return {
+        'total_regions': len(all_regions),
+        'opt_in_regions': opt_in_regions,
+        'default_regions': default_regions
+    }
