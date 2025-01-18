@@ -1,0 +1,49 @@
+{
+  "resources": [
+    {
+      "name": "calculate_avgs_role",
+      "resource_type": "iam_role",
+      "role_arn": "arn:aws:iam::506666621600:role/scheduled_functions-prod-calculate_avgs",
+      "role_name": "scheduled_functions-prod-calculate_avgs"
+    },
+    {
+      "name": "calculate_avgs",
+      "resource_type": "lambda_function",
+      "lambda_arn": "arn:aws:lambda:us-east-2:506666621600:function:scheduled_functions-prod-calculate_avgs"
+    },
+    {
+      "name": "calc_scheduler_role",
+      "resource_type": "iam_role",
+      "role_arn": "arn:aws:iam::506666621600:role/scheduled_functions-prod-calc_scheduler",
+      "role_name": "scheduled_functions-prod-calc_scheduler"
+    },
+    {
+      "name": "calc_scheduler",
+      "resource_type": "lambda_function",
+      "lambda_arn": "arn:aws:lambda:us-east-2:506666621600:function:scheduled_functions-prod-calc_scheduler"
+    },
+    {
+      "name": "calc_scheduler-event",
+      "resource_type": "cloudwatch_event",
+      "rule_name": "scheduled_functions-prod-calc_scheduler-event"
+    },
+    {
+      "name": "store_region_status_role",
+      "resource_type": "iam_role",
+      "role_arn": "arn:aws:iam::506666621600:role/scheduled_functions-prod-store_region_status",
+      "role_name": "scheduled_functions-prod-store_region_status"
+    },
+    {
+      "name": "store_region_status",
+      "resource_type": "lambda_function",
+      "lambda_arn": "arn:aws:lambda:us-east-2:506666621600:function:scheduled_functions-prod-store_region_status"
+    },
+    {
+      "name": "store_region_status-event",
+      "resource_type": "cloudwatch_event",
+      "rule_name": "scheduled_functions-prod-store_region_status-event"
+    }
+  ],
+  "schema_version": "2.0",
+  "backend": "api"
+}

@@ -1,30 +1,35 @@
 import boto3
 import json
+import sys
 
-def get_curr_region():
-    my_session = boto3.session.Session()
-    my_region = my_session.region_name
-    return my_region
+session = boto3.Session()
+dynamodb = session.resource('dynamodb', region_name="us-east-2")
+regions_table_enhanced = dynamodb.Table('cloudping_regions_enhanced')
+stored_avgs_table = dynamodb.Table('cloudping_stored_avgs')
+lambda_client = session.client('lambda', region_name="us-east-2")
+
+def is_region_active(region_object):
+    status = region_object["status"]
+    function_exists = region_object["ping_function_exists"]
+    earliest_data_timestamp = region_object["earliest_data_timestamp"]
+
+    if status in ["ENABLED", "ENABLED_BY_DEFAULT"] and \
+        function_exists and earliest_data_timestamp is not "None":
+        return True
+    return False
 
 def schedule(calc_func_name):
-    session = boto3.Session()
-    dynamodb = session.resource('dynamodb', region_name=get_curr_region())
-    regions_table = dynamodb.Table('cloudping_regions')
-    stored_avgs_table = dynamodb.Table('cloudping_stored_avgs')
-    lambda_client = session.client('lambda', region_name=get_curr_region())
-
     timeframes_to_store = ['1D', '1W', '1M', '1Y']
 
-    regions_response = regions_table.scan()
+    regions_enhanced_response = regions_table_enhanced.scan()
 
-    for region in regions_response['Items']:
-        region_id = region['region']
-        region_name = region['region_name']
-        region_active = region['active']
+    for region in regions_enhanced_response['Items']:
+        region_id = region['region_name']
+        region_active = is_region_active(region)
 
         if region_active:
             for timeframe in timeframes_to_store:
-                print(region_id, region_name, region_active, timeframe)
+                print(region_id, region_active, timeframe)
                 # Invoke Lambda function
                 lambda_response = lambda_client.invoke(
                     FunctionName=calc_func_name,
@@ -39,8 +44,8 @@ def schedule(calc_func_name):
                 if lambda_response['StatusCode'] != 200:
                     print(lambda_response['FunctionError'], lambda_response['StatusCode'])
                     sys.exit(1)
-                
                 calculated_averages = res_json = json.loads(lambda_response['Payload'].read().decode("utf-8"))
+                print(calculated_averages)
                 # Store data received back in DynamoDB
 
                 for avg in calculated_averages[region_id]:
@@ -73,5 +78,8 @@ def schedule(calc_func_name):
 
     return {
         "message": "Function execution completed successfully.",
-        "event": event
+        "event": calc_func_name
     }
+
+if __name__ == "__main__":
+    schedule("scheduled_functions-prod-calculate_avgs")

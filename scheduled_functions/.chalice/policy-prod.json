@@ -14,18 +14,22 @@
             "Action": [
                 "dynamodb:Scan",
                 "dynamodb:PutItem",
-                "dynamodb:Query"
+                "dynamodb:Query",
+                "dynamodb:BatchWriteItem"
             ],
             "Resource": [
                 "arn:aws:dynamodb:us-east-2:506666621600:table/PingTest",
+                "arn:aws:dynamodb:us-east-2:506666621600:table/PingTest/*",
                 "arn:aws:dynamodb:us-east-2:506666621600:table/cloudping_regions",
+                "arn:aws:dynamodb:us-east-2:506666621600:table/cloudping_regions_enhanced",
                 "arn:aws:dynamodb:us-east-2:506666621600:table/cloudping_stored_avgs"
             ],
             "Effect": "Allow"
         },
         {
             "Action": [
-                "lambda:InvokeFunction"
+                "lambda:InvokeFunction",
+                "account:ListRegions"
             ],
             "Resource": "*",
             "Effect": "Allow"

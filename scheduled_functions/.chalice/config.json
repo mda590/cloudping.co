@@ -6,6 +6,12 @@
     "dev": {}
   },
   "layers": [
-    "arn:aws:lambda:us-east-2:259788987135:layer:AWSLambda-Python37-SciPy1x:2"
-  ]
+    "arn:aws:lambda:us-east-2:336392948345:layer:AWSSDKPandas-Python311:20"
+  ],
+  "tags": {
+    "application": "cloudping",
+    "component": "scheduled_functions"
+  },
+  "lambda_timeout": 900,
+  "lambda_memory_size": 1024
 }

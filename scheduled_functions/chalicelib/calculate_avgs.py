@@ -104,5 +104,17 @@ def calculate(event):
             }
         )
 
-    print(json.dumps(avgs_to_return,indent=3))
+    print(
+        json.dumps(
+            avgs_to_return,indent=3
+        )
+    )
     return avgs_to_return
+
+if __name__ == "__main__":
+    event = {
+        'region': "us-west-2",
+        'execution_source': 'scheduled',
+        'latency_range': '1D'
+    }
+    calculate(event)
