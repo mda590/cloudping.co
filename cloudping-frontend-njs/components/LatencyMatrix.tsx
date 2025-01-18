@@ -141,8 +141,17 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
                       className="p-2 border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 transition-colors duration-150"
                     >
                       <div className="flex items-center gap-1.5">
-                        <div className={`w-2 h-2 rounded-full ${getLatencyColor(latency)}`} />
-                        <span className="text-white whitespace-nowrap">{latency.toFixed(2)}ms</span>
+                        {(latency !== undefined && latency !== null) ? (
+                          <>
+                            <div className={`w-2 h-2 rounded-full ${getLatencyColor(latency)}`} />
+                            <span className="text-white whitespace-nowrap">{latency.toFixed(2)}ms</span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-2 h-2 rounded-full bg-zinc-600" />
+                            <span className="text-zinc-400 whitespace-nowrap">N/A</span>
+                          </>
+                        )}
                       </div>
                     </td>
                   );
