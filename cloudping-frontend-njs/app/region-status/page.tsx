@@ -17,7 +17,7 @@ export default async function RegionStatusPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-white mb-6">AWS Region Status</h1>
+      <h1 className="text-2xl font-bold text-white mb-6">Region Status</h1>
       
       <div className="overflow-x-auto border border-zinc-700 rounded">
         <table className="w-full border-collapse text-sm">
@@ -65,10 +65,11 @@ export default async function RegionStatusPage() {
       <div className="mt-6 text-zinc-400 text-sm">
         <h2 className="text-white text-lg font-medium mb-2">About Region Status</h2>
         <ul className="space-y-2">
-          <li><strong className="text-white">ENABLED_BY_DEFAULT:</strong> Region is enabled by default in AWS accounts</li>
-          <li><strong className="text-white">ENABLED:</strong> Region requires explicit enabling in AWS accounts</li>
-          <li><strong className="text-white">Data Points:</strong> Shows the date range for which we have collected latency data</li>
-          <li><strong className="text-white">Opt-in Required:</strong> Indicates whether the region needs to be explicitly enabled in your AWS account</li>
+          <li><strong className="text-white">ENABLED_BY_DEFAULT:</strong> Region is enabled by default in AWS accounts.</li>
+          <li><strong className="text-white">ENABLED:</strong> Region requires explicit enabling in AWS accounts and has been enabled.</li>
+          <li><strong className="text-white">DISABLED:</strong> Region requires explicit enabling in AWS accounts and has not yet been enabled.</li>
+          <li><strong className="text-white">Data Points:</strong> Shows the date range for which we have collected latency data.</li>
+          <li><strong className="text-white">Opt-in Required:</strong> Indicates whether the region needs to be explicitly enabled in your AWS account.</li>
         </ul>
       </div>
     </div>
