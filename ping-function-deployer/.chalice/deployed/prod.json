@@ -1,0 +1,22 @@
+{
+  "resources": [
+    {
+      "name": "deploy_role",
+      "resource_type": "iam_role",
+      "role_arn": "arn:aws:iam::506666621600:role/ping-function-deployer-prod-deploy",
+      "role_name": "ping-function-deployer-prod-deploy"
+    },
+    {
+      "name": "deploy",
+      "resource_type": "lambda_function",
+      "lambda_arn": "arn:aws:lambda:us-east-2:506666621600:function:ping-function-deployer-prod-deploy"
+    },
+    {
+      "name": "deploy-event",
+      "resource_type": "cloudwatch_event",
+      "rule_name": "ping-function-deployer-prod-deploy-event"
+    }
+  ],
+  "schema_version": "2.0",
+  "backend": "api"
+}

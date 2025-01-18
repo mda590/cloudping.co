@@ -1,0 +1,13 @@
+{
+  "version": "2.0",
+  "app_name": "ping-function-deployer",
+  "autogen_policy": false,
+  "stages": {
+    "prod": {}
+  },
+  "tags": {
+    "application": "cloudping",
+    "component": "ping-function-deployer"
+  },
+  "lambda_timeout": 180
+}
