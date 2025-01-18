@@ -1,0 +1,22 @@
+{
+  "resources": [
+    {
+      "name": "check_and_enable_regions_role",
+      "resource_type": "iam_role",
+      "role_arn": "arn:aws:iam::506666621600:role/account-region-manager-prod-check_and_enable_regions",
+      "role_name": "account-region-manager-prod-check_and_enable_regions"
+    },
+    {
+      "name": "check_and_enable_regions",
+      "resource_type": "lambda_function",
+      "lambda_arn": "arn:aws:lambda:us-east-2:506666621600:function:account-region-manager-prod-check_and_enable_regions"
+    },
+    {
+      "name": "check_and_enable_regions-event",
+      "resource_type": "cloudwatch_event",
+      "rule_name": "account-region-manager-prod-check_and_enable_regions-event"
+    }
+  ],
+  "schema_version": "2.0",
+  "backend": "api"
+}
