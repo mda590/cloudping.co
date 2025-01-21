@@ -29,7 +29,8 @@
         {
             "Action": [
                 "lambda:InvokeFunction",
-                "account:ListRegions"
+                "account:ListRegions",
+                "lambda:GetFunctionConfiguration"
             ],
             "Resource": "*",
             "Effect": "Allow"

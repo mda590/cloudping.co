@@ -12,9 +12,10 @@ def is_region_active(region_object):
     status = region_object["status"]
     function_exists = region_object["ping_function_exists"]
     earliest_data_timestamp = region_object["earliest_data_timestamp"]
+    print("Checking region active", region_object["region_name"], status, function_exists, earliest_data_timestamp)
 
     if status in ["ENABLED", "ENABLED_BY_DEFAULT"] and \
-        function_exists and earliest_data_timestamp is not "None":
+        function_exists and earliest_data_timestamp != "None":
         return True
     return False
 
