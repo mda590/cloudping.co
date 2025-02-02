@@ -15,6 +15,9 @@ export default function Header() {
           <Link href="/about" className="hover:text-zinc-300">
             About
           </Link>
+          <Link href="/visualization" className="hover:text-zinc-300">
+            Latency Visualization
+          </Link>
           <Link href="/region-status" className="hover:text-zinc-300">
             Region Status
           </Link>
