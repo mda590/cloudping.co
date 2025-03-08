@@ -20,19 +20,55 @@ interface LatencyMatrixProps {
   initialData: LatencyData;
 }
 
+enum RegionFilterModes {
+  All = "all",
+  None = "none",
+}
+
+type RegionFilter = RegionFilterModes.All | RegionFilterModes.None | string[];
+
 export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
   const [selectedPercentile, setSelectedPercentile] = useState('p_50');
   const [selectedTimeframe, setSelectedTimeframe] = useState('1D');
   const [data, setData] = useState<LatencyData | null>(initialData);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [regionFilter, setRegionFilter] = useState<RegionFilter>(RegionFilterModes.All);
   
-  const regions = data?.data ? Object.keys(data.data).sort() : [];
+  var regions = [] as string[];
+  if (data?.data) {
+    if (regionFilter == RegionFilterModes.All) {
+      regions = Object.keys(data.data).sort();
+    } else if (Array.isArray(regionFilter)) {
+      regions = Object.keys(data.data).filter(region => regionFilter.includes(region)).sort();
+    }
+  }
 
   const getLatencyColor = (latency: number): string => {
     if (latency < 100) return 'bg-green-500';
     if (latency < 180) return 'bg-yellow-500';
     return 'bg-red-500';
+  };
+
+  const updateRegionFilter = (selectedValue: RegionFilterModes | string) => {
+    if (selectedValue === RegionFilterModes.All) {
+      setRegionFilter(RegionFilterModes.All);
+    } else if (selectedValue === RegionFilterModes.None) {
+      setRegionFilter(RegionFilterModes.None);
+    } else {
+      if (Array.isArray(regionFilter)) {
+        if (regionFilter.includes(selectedValue)) {
+          const newRegionFilter = regionFilter.filter(region => region !== selectedValue);
+          setRegionFilter(newRegionFilter);
+        }
+        else {
+          const newRegionFilter = [...regionFilter, selectedValue];
+          setRegionFilter(newRegionFilter);
+        }
+      } else {
+        setRegionFilter([selectedValue]);
+      }
+    }
   };
 
   const updateData = async () => {
@@ -81,35 +117,55 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
 
       <div className="flex justify-between items-center mb-6">
         <div className="flex gap-4">
-          <select 
-            value={selectedPercentile}
-            onChange={(e) => {
-              setSelectedPercentile(e.target.value);
-              updateData();
-            }}
-            disabled={isLoading}
-            className="bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-white w-36 text-sm disabled:opacity-50"
-          >
-            {['p_10', 'p_25', 'p_50', 'p_75', 'p_90', 'p_98', 'p_99'].map((p) => (
-              <option key={p} value={p}>
-                {p.toUpperCase().replace('_', '')}
-              </option>
-            ))}
-          </select>
+          <div className="flex flex-col gap-4">
+            <select
+              value={selectedPercentile}
+              onChange={(e) => {
+                setSelectedPercentile(e.target.value);
+                updateData();
+              }}
+              disabled={isLoading}
+              className="bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-white w-36 text-sm disabled:opacity-50"
+            >
+              {['p_10', 'p_25', 'p_50', 'p_75', 'p_90', 'p_98', 'p_99'].map((p) => (
+                <option key={p} value={p}>
+                  {p.toUpperCase().replace('_', '')}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={selectedTimeframe}
+              onChange={(e) => {
+                setSelectedTimeframe(e.target.value);
+                updateData();
+              }}
+              disabled={isLoading}
+              className="bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-white w-36 text-sm disabled:opacity-50"
+            >
+              <option value="1D">1 Day</option>
+              <option value="1W">1 Week</option>
+              <option value="1M">1 Month</option>
+              <option value="1Y">1 Year</option>
+            </select>
+          </div>
 
           <select
-            value={selectedTimeframe}
+            value={Array.isArray(regionFilter) ? regionFilter : [regionFilter.toString()]}
             onChange={(e) => {
-              setSelectedTimeframe(e.target.value);
-              updateData();
+              updateRegionFilter(e.target.value);
             }}
             disabled={isLoading}
             className="bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-white w-36 text-sm disabled:opacity-50"
+            multiple
           >
-            <option value="1D">1 Day</option>
-            <option value="1W">1 Week</option>
-            <option value="1M">1 Month</option>
-            <option value="1Y">1 Year</option>
+            <option value={RegionFilterModes.All}>All regions</option>
+            <option value={RegionFilterModes.None}>Clear selections</option>
+            {Object.keys(data.data).sort().map(region => (
+              <option key={region} value={region}>
+                {region}
+              </option>
+            ))}
           </select>
         </div>
         <StripeButton />
