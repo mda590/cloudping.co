@@ -2,6 +2,46 @@
 import { useState } from 'react';
 import StripeButton from './StripeButton';
 
+// Function to dynamically group AWS regions by geography
+const getRegionGroups = (regions: string[]) => {
+  const groups: { [key: string]: string[] } = {
+    "All Regions": [],
+    "Americas": [],
+    "Europe": [],
+    "Asia Pacific": [],
+    "Middle East & Africa": []
+  };
+  
+  regions.forEach(region => {
+    const prefix = region.split('-')[0];
+    
+    switch (prefix) {
+      case 'us':
+      case 'ca':
+      case 'sa':
+      case 'mx':
+        groups["Americas"].push(region);
+        break;
+      case 'eu':
+        groups["Europe"].push(region);
+        break;
+      case 'ap':
+        groups["Asia Pacific"].push(region);
+        break;
+      case 'me':
+      case 'af':
+      case 'il':
+        groups["Middle East & Africa"].push(region);
+        break;
+      default:
+        // If we encounter a new region type, add it to All Regions only
+        console.log(`Unrecognized region prefix: ${prefix} for region ${region}`);
+    }
+  });
+  
+  return groups;
+};
+
 interface LatencyData {
   metadata: {
     timestamp: string;
@@ -23,11 +63,26 @@ interface LatencyMatrixProps {
 export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
   const [selectedPercentile, setSelectedPercentile] = useState('p_50');
   const [selectedTimeframe, setSelectedTimeframe] = useState('1D');
+  const [selectedRegionGroup, setSelectedRegionGroup] = useState('All Regions');
   const [data, setData] = useState<LatencyData | null>(initialData);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const regions = data?.data ? Object.keys(data.data).sort() : [];
+  // Get all available regions
+  const allRegions = data?.data ? Object.keys(data.data).sort() : [];
+  
+  // Dynamically create region groups
+  const regionGroups = getRegionGroups(allRegions);
+  
+  // Filter regions based on selected group
+  const getFilteredRegions = () => {
+    if (selectedRegionGroup === 'All Regions') {
+      return allRegions;
+    }
+    return allRegions.filter(region => regionGroups[selectedRegionGroup].includes(region));
+  };
+
+  const regions = getFilteredRegions();
 
   const getLatencyColor = (latency: number): string => {
     if (latency < 100) return 'bg-green-500';
@@ -79,8 +134,8 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
         </div>
       )}
 
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex gap-4">
+      <div className="flex flex-wrap gap-4 mb-6 items-center">
+        <div>
           <select 
             value={selectedPercentile}
             onChange={(e) => {
@@ -96,7 +151,9 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
               </option>
             ))}
           </select>
+        </div>
 
+        <div>
           <select
             value={selectedTimeframe}
             onChange={(e) => {
@@ -112,7 +169,25 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
             <option value="1Y">1 Year</option>
           </select>
         </div>
-        <StripeButton />
+
+        <div>
+          <select
+            value={selectedRegionGroup}
+            onChange={(e) => setSelectedRegionGroup(e.target.value)}
+            disabled={isLoading}
+            className="bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-white w-48 text-sm disabled:opacity-50"
+          >
+            {Object.keys(regionGroups).map((group) => (
+              <option key={group} value={group}>
+                {group} ({group === 'All Regions' ? allRegions.length : regionGroups[group].length})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="ml-auto">
+          <StripeButton />
+        </div>
       </div>
 
       <div className="overflow-x-auto border border-zinc-700 rounded">
