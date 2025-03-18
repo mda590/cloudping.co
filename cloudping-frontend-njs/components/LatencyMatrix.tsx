@@ -1,46 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import StripeButton from './StripeButton';
-
-// Function to dynamically group AWS regions by geography
-const getRegionGroups = (regions: string[]) => {
-  const groups: { [key: string]: string[] } = {
-    "All Regions": [],
-    "Americas": [],
-    "Europe": [],
-    "Asia Pacific": [],
-    "Middle East & Africa": []
-  };
-  
-  regions.forEach(region => {
-    const prefix = region.split('-')[0];
-    
-    switch (prefix) {
-      case 'us':
-      case 'ca':
-      case 'sa':
-      case 'mx':
-        groups["Americas"].push(region);
-        break;
-      case 'eu':
-        groups["Europe"].push(region);
-        break;
-      case 'ap':
-        groups["Asia Pacific"].push(region);
-        break;
-      case 'me':
-      case 'af':
-      case 'il':
-        groups["Middle East & Africa"].push(region);
-        break;
-      default:
-        // If we encounter a new region type, add it to All Regions only
-        console.log(`Unrecognized region prefix: ${prefix} for region ${region}`);
-    }
-  });
-  
-  return groups;
-};
+import RegionFilterPanel from './RegionFilterPanel';
 
 interface LatencyData {
   metadata: {
@@ -63,26 +24,31 @@ interface LatencyMatrixProps {
 export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
   const [selectedPercentile, setSelectedPercentile] = useState('p_50');
   const [selectedTimeframe, setSelectedTimeframe] = useState('1D');
-  const [selectedRegionGroup, setSelectedRegionGroup] = useState('All Regions');
   const [data, setData] = useState<LatencyData | null>(initialData);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   
   // Get all available regions
   const allRegions = data?.data ? Object.keys(data.data).sort() : [];
   
-  // Dynamically create region groups
-  const regionGroups = getRegionGroups(allRegions);
+  // State for selected regions (initially all regions)
+  const [selectedRegions, setSelectedRegions] = useState<string[]>(allRegions);
   
-  // Filter regions based on selected group
-  const getFilteredRegions = () => {
-    if (selectedRegionGroup === 'All Regions') {
-      return allRegions;
+  // Update selected regions when data changes
+  useEffect(() => {
+    if (data?.data) {
+      const newRegions = Object.keys(data.data).sort();
+      // Add any new regions to the selection
+      const newSelectedRegions = [...selectedRegions];
+      newRegions.forEach(region => {
+        if (!selectedRegions.includes(region)) {
+          newSelectedRegions.push(region);
+        }
+      });
+      setSelectedRegions(newSelectedRegions);
     }
-    return allRegions.filter(region => regionGroups[selectedRegionGroup].includes(region));
-  };
-
-  const regions = getFilteredRegions();
+  }, [data]);
 
   const getLatencyColor = (latency: number): string => {
     if (latency < 100) return 'bg-green-500';
@@ -115,6 +81,9 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
   if (!data) {
     return <div className="text-white">Loading...</div>;
   }
+
+  // Use only the selected regions for display
+  const displayRegions = allRegions.filter(region => selectedRegions.includes(region));
 
   return (
     <div className="w-full max-w-6xl mx-auto">
@@ -170,20 +139,19 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
           </select>
         </div>
 
-        <div>
-          <select
-            value={selectedRegionGroup}
-            onChange={(e) => setSelectedRegionGroup(e.target.value)}
-            disabled={isLoading}
-            className="bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-white w-48 text-sm disabled:opacity-50"
-          >
-            {Object.keys(regionGroups).map((group) => (
-              <option key={group} value={group}>
-                {group} ({group === 'All Regions' ? allRegions.length : regionGroups[group].length})
-              </option>
-            ))}
-          </select>
-        </div>
+        <button
+          onClick={() => setIsFilterPanelOpen(true)}
+          className="bg-zinc-700 hover:bg-zinc-600 border border-zinc-600 rounded px-3 py-1 text-white text-sm flex items-center gap-1.5"
+          disabled={isLoading}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+          </svg>
+          Filter Regions
+          <span className="bg-zinc-800 text-xs px-1.5 py-0.5 rounded-full">
+            {selectedRegions.length}/{allRegions.length}
+          </span>
+        </button>
 
         <div className="ml-auto">
           <StripeButton />
@@ -195,7 +163,7 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
           <thead>
             <tr>
               <th className="p-2 border border-zinc-700 bg-zinc-800 text-white text-left sticky left-0 z-10">To \ From</th>
-              {regions.map(region => (
+              {displayRegions.map(region => (
                 <th key={region} className="p-2 border border-zinc-700 bg-zinc-800 text-white font-medium text-left whitespace-nowrap">
                   {region}
                 </th>
@@ -203,12 +171,12 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
             </tr>
           </thead>
           <tbody className={isLoading ? 'opacity-50' : ''}>
-            {regions.map(fromRegion => (
+            {displayRegions.map(fromRegion => (
               <tr key={fromRegion}>
                 <td className="p-2 border border-zinc-700 bg-zinc-800 text-white font-medium sticky left-0 z-10 whitespace-nowrap">
                   {fromRegion}
                 </td>
-                {regions.map(toRegion => {
+                {displayRegions.map(toRegion => {
                   const latency = data.data[fromRegion][toRegion];
                   return (
                     <td 
@@ -273,6 +241,15 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
           <a href="mailto:matt@ma.dev" className="text-blue-400 hover:text-blue-300">matt@ma.dev</a>.
         </div>
       </div>
+
+      {/* Region filter panel */}
+      <RegionFilterPanel
+        allRegions={allRegions}
+        selectedRegions={selectedRegions}
+        setSelectedRegions={setSelectedRegions}
+        isOpen={isFilterPanelOpen}
+        onClose={() => setIsFilterPanelOpen(false)}
+      />
     </div>
   );
 }
