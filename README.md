@@ -1,46 +1,190 @@
-# CloudPing
+# CloudPing.co
 
-Records inter-region latency over a TCP connection between all AWS regions.
+CloudPing records inter-region latency over TCP connections between all AWS regions in real-time, providing a continuously updated, reliable source of truth for AWS region-to-region latency metrics.
 
-## About this Project
+## About
 
-Over time, as I've worked on global AWS deployments, I have often been faced with the question of which inter-region transactions will be faced with the most latency. I have been able to find a lot of static examples of previous testing completed, or anecdotal thoughts based on a region's location. I haven't been able to find any kind of dynamic, consistently updated, latency monitoring. The goal here is to provide a single source of truth for inter-region AWS region latency.
+When building global AWS deployments, knowing which inter-region transactions will face the most latency is crucial for system design. While static examples and anecdotal guidance based on geographic location exist, CloudPing.co offers a dynamic, consistently updated latency monitoring service that tracks real-world performance between all AWS regions.
 
 ## Architecture
 
-![architecture](images/CloudPing_architecture.png)
+CloudPing.co consists of several microservices working together:
 
-## Parts of Application
+## Components
 
-### Front End
+### 1. Frontend (`cloudping-frontend-njs/`)
 
-The front end of CloudPing is running in a Fargate container as a Python Flask web server. The web server pulls its data from DynamoDB and uses that data to populate the data in the table.
+A Next.js application that provides an interactive user interface for viewing latency data.
 
-### Region-to-Region Pings
+- Modern responsive design with Tailwind CSS
+- Interactive latency matrix with filtering capabilities
+- Visualization tools to help understand region relationships
+- Supports viewing different time periods (daily, weekly, monthly, yearly)
+- Ability to filter regions and view by percentiles (P50, P90, etc.)
 
-Each active AWS region has a Lambda function that runs every 6 hours. This function does a ping of the public DynamoDB endpoint (`dynamodb.<region>.amazonaws.com`) and stores the RTT for the ping in to a DynamoDB table.
+### 2. API Service (`cloudping-api/`)
 
-### Averages and Percentile Calculations
+A serverless API built with AWS Chalice that provides endpoints for accessing latency data.
 
-Every 6 hours, after the completion of the region-to-region pings, the data is taken from the raw results DynamoDB table. The data is then used to calculate daily, weekly, monthly, and annual averages and percentiles between all of the active regions. This data is then stored in a summary DynamoDB table which is used to provide data to the front-end.
+- RESTful endpoints for retrieving latency information
+- Support for filtering by region, timeframe, and percentile
+- Historical data access with API key authentication
+- Provides region status information
 
-### DynamoDB Tables
+### 3. Ping Functions (`ping_from_region/`)
 
-* `PingTest` - this table stores the raw data for round trip ping times to and from each region. The data in this table goes back to CloudPing's launch in 2017.
-* `cloudping_regions` - this table lists the AWS regions which are enabled in CloudPing and drives the regions that are shown on the front end.
-* `cloudping_stored_avgs` - this table contains the summarized averages and percentiles and is the table used to populate the front-end data.
+Lambda functions deployed to each AWS region that measure TCP latency to all other regions.
 
-## Deployment Instructions
+- Runs every 6 hours in each active AWS region
+- Measures TCP connection time to AWS service endpoints
+- Records raw results in DynamoDB for historical tracking
+- Stores detailed round-trip information for analysis
 
-The Lambda functions are deployed with AWS Chalice.
-The front-end web site is deployed as a Docker image, stored in ECR, and served by a Fargate service which exists behind an ALB.
+### 4. Scheduled Functions (`scheduled_functions/`)
 
-## TODO
+Background tasks that process raw ping data to calculate statistics and summaries.
 
-* API access - both to raw data stored in DyanmoDB, as well as to specific queries used primarily by the web front-end.
-* Graph showing latency over time for user selected parameters (between regions, specific timeframes, etc.)
-* GovCloud and China regions (if anyone is able to help make this happen, please reach out!)
+- Calculates daily, weekly, monthly, and annual averages
+- Computes percentiles (P10, P25, P50, P75, P90, P98, P99)
+- Stores aggregated data in DynamoDB tables
+- Updates region status information
 
-## Additional Notes
+### 5. Ping Function Deployer (`ping-function-deployer/`)
 
-This project is in no way associated with Amazon or AWS. If you wish to report any issues with the project, please use the "Issues" feature within GitHub.
+Automated deployment service that ensures ping functions exist in all AWS regions.
+
+- Automatically deploys ping functions to new regions
+- Updates function code when changes are made
+- Sets up appropriate CloudWatch Event Rules for scheduling
+- Maintains consistent monitoring across the AWS global infrastructure
+
+### 6. Account Region Manager (`account-region-manager/`)
+
+Service that monitors and enables new AWS regions automatically.
+
+- Checks for newly available AWS regions
+- Automatically enables opt-in regions for the account
+- Ensures CloudPing.co expands to cover new regions as they launch
+- Maintains region status information
+
+### Database Structure
+
+CloudPing.co uses Amazon DynamoDB for data storage:
+
+- `PingTest` - Raw data from all region-to-region pings
+- `cloudping_regions` - Configuration data for all AWS regions
+- `cloudping_stored_avgs` - Processed averages and percentiles used by the frontend
+
+## Local Development
+
+### Prerequisites
+
+- Python 3.9+
+- Node.js 18+
+- AWS CLI configured with appropriate credentials
+- Docker (optional, for container-based development)
+
+### Setting Up the Frontend
+
+```bash
+# Navigate to the frontend directory
+cd cloudping-frontend-njs
+
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+```
+
+The frontend will be available at http://localhost:3000
+
+### Setting Up the API
+
+```bash
+# Navigate to the API directory
+cd cloudping-api
+
+# Create a virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run local API server
+chalice local
+```
+
+The API will be available at http://localhost:8000
+
+### Testing Ping Functions
+
+```bash
+# Navigate to the ping function directory
+cd ping_from_region
+
+# Create a virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the function locally
+python -c "from app import ping; ping({})"
+```
+
+### Setting Up Scheduled Functions
+
+```bash
+# Navigate to the scheduled functions directory
+cd scheduled_functions
+
+# Create a virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run individual functions
+python -c "from chalicelib.calculate_avgs import calculate; calculate({})"
+```
+
+## Deployment
+
+The Lambda functions are deployed with AWS Chalice:
+
+```bash
+# Example: Deploy ping functions
+cd ping_from_region
+chalice deploy --stage prod
+```
+
+The frontend is deployed as a Docker container in AWS Fargate:
+
+```bash
+# Build and deploy the frontend
+cd cloudping-frontend-njs
+docker build -t cloudping-frontend .
+```
+
+## Future Enhancements
+
+- Enhanced API access for raw data and custom queries
+- Interactive graphs showing latency trends over time
+- Support for GovCloud and China regions
+- Additional cloud providers beyond AWS
+
+## Contributing
+
+Contributions to CloudPing.co are welcome! If you'd like to help improve the project, please feel free to submit pull requests or open issues.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Contact
+
+For questions or feedback, please contact [matt@ma.dev](mailto:matt@ma.dev).
