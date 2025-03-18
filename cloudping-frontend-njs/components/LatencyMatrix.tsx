@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import StripeButton from './StripeButton';
 import RegionFilterPanel from './RegionFilterPanel';
 
@@ -39,16 +40,23 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
   useEffect(() => {
     if (data?.data) {
       const newRegions = Object.keys(data.data).sort();
-      // Add any new regions to the selection
-      const newSelectedRegions = [...selectedRegions];
-      newRegions.forEach(region => {
-        if (!selectedRegions.includes(region)) {
-          newSelectedRegions.push(region);
-        }
+      setSelectedRegions(prevSelected => {
+        // Add any new regions to the selection
+        const updatedSelection = [...prevSelected];
+        let changed = false;
+        
+        newRegions.forEach(region => {
+          if (!prevSelected.includes(region)) {
+            updatedSelection.push(region);
+            changed = true;
+          }
+        });
+        
+        // Only update state if there were changes
+        return changed ? updatedSelection : prevSelected;
       });
-      setSelectedRegions(newSelectedRegions);
     }
-  }, [data]);
+  }, [data]); // Remove selectedRegions from dependency array
 
   const getLatencyColor = (latency: number): string => {
     if (latency < 100) return 'bg-green-500';
@@ -230,10 +238,12 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
       {/* Footer */}
       <div className="mt-8 py-4 border-t border-zinc-700 flex items-center gap-3 text-zinc-400">
         <div className="w-8 h-8">
-          <img 
+          <Image 
             src="/static/logo.png" 
             alt="CloudPing Logo" 
-            className="w-full h-full object-contain"
+            width={32}
+            height={32}
+            className="object-contain"
           />
         </div>
         <div className="text-sm">
