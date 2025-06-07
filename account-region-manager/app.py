@@ -16,7 +16,7 @@ def get_account_id():
 def get_all_regions():
     """Get a list of all AWS regions."""
     ec2 = boto3.client('ec2')
-    regions = [region['RegionName'] for region in ec2.describe_regions()['Regions']]
+    regions = [region['RegionName'] for region in ec2.describe_regions(AllRegions=True)['Regions']]
     return regions
 
 def get_region_status():
@@ -29,7 +29,11 @@ def get_region_status():
     try:
         response = client.list_regions()
         paginator = client.get_paginator('list_regions')
-        page_iterator = paginator.paginate()
+        page_iterator = paginator.paginate(
+            RegionOptStatusContains=[
+                'ENABLED','ENABLING','DISABLING','DISABLED','ENABLED_BY_DEFAULT',
+            ]
+        )
         region_status = {}
         
         for page in page_iterator:
