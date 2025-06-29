@@ -20,13 +20,15 @@ export async function GET(request: NextRequest) {
     );
 
     if (!response.ok) {
+      console.error('Backend API error:', response.status, response.statusText);
       throw new Error('Failed to fetch data');
     }
 
     const data = await response.json();
-    
+
     return NextResponse.json(data);
-  } catch {
+  } catch (error) {
+    console.error('API route error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch latency data' },
       { status: 500 }

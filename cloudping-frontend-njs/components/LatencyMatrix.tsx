@@ -64,15 +64,21 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
     return 'bg-red-500';
   };
 
-  const updateData = async () => {
+  const updateData = async (percentile?: string, timeframe?: string) => {
     try {
       setIsLoading(true);
       setError(null);
-      const res = await fetch(`/api/latencies?percentile=${selectedPercentile}&timeframe=${selectedTimeframe}`);
+      
+      // Use provided values or fall back to current state
+      const currentPercentile = percentile || selectedPercentile;
+      const currentTimeframe = timeframe || selectedTimeframe;
+      
+      const res = await fetch(`/api/latencies?percentile=${currentPercentile}&timeframe=${currentTimeframe}`);
       if (!res.ok) {
         throw new Error(`Error fetching data: ${res.statusText}`);
       }
       const newData = await res.json();
+
       if (!newData || !newData.data) {
         throw new Error('Invalid data received from server');
       }
@@ -116,8 +122,9 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
           <select 
             value={selectedPercentile}
             onChange={(e) => {
-              setSelectedPercentile(e.target.value);
-              updateData();
+              const newValue = e.target.value;
+              setSelectedPercentile(newValue);
+              updateData(newValue, selectedTimeframe); // Pass the new value directly
             }}
             disabled={isLoading}
             className="bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-white w-36 text-sm disabled:opacity-50"
@@ -134,8 +141,9 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
           <select
             value={selectedTimeframe}
             onChange={(e) => {
-              setSelectedTimeframe(e.target.value);
-              updateData();
+              const newValue = e.target.value;
+              setSelectedTimeframe(newValue);
+              updateData(selectedPercentile, newValue); // Pass the new value directly
             }}
             disabled={isLoading}
             className="bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-white w-36 text-sm disabled:opacity-50"
