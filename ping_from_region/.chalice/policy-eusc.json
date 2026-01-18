@@ -1,0 +1,19 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": "secretsmanager:GetSecretValue",
+            "Resource": "arn:aws-eusc:secretsmanager:*:*:secret:cloudping/*",
+            "Effect": "Allow"
+        },
+        {
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+            ],
+            "Resource": "arn:aws-eusc:logs:*:*:*",
+            "Effect": "Allow"
+        }
+    ]
+}

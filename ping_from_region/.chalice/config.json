@@ -3,7 +3,15 @@
   "app_name": "ping_from_region",
   "autogen_policy": false,
   "stages": {
-    "prod": {}
+    "prod": {
+      "iam_policy_file": "policy-prod.json"
+    },
+    "eusc": {
+      "iam_policy_file": "policy-eusc.json",
+      "tags": {
+        "partition": "aws-eusc"
+      }
+    }
   },
   "tags": {
     "application": "cloudping",

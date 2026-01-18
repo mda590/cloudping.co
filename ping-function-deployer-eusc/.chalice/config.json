@@ -1,0 +1,14 @@
+{
+  "version": "2.0",
+  "app_name": "ping-function-deployer-eusc",
+  "autogen_policy": false,
+  "stages": {
+    "prod": {}
+  },
+  "tags": {
+    "application": "cloudping",
+    "component": "ping-function-deployer-eusc",
+    "partition": "aws-eusc"
+  },
+  "lambda_timeout": 180
+}

@@ -22,6 +22,7 @@ export default function RegionFilterPanel({
     'Europe': true,
     'Asia Pacific': true,
     'Middle East & Africa': true,
+    'European Sovereign Cloud': true,
   });
 
   // Group regions dynamically
@@ -29,7 +30,8 @@ export default function RegionFilterPanel({
     'Americas': [],
     'Europe': [],
     'Asia Pacific': [],
-    'Middle East & Africa': []
+    'Middle East & Africa': [],
+    'European Sovereign Cloud': []
   };
   
   allRegions.forEach(region => {
@@ -52,6 +54,9 @@ export default function RegionFilterPanel({
       case 'af':
       case 'il':
         regionGroups['Middle East & Africa'].push(region);
+        break;
+      case 'eusc':
+        regionGroups['European Sovereign Cloud'].push(region);
         break;
       default:
         // If unknown, add to all regions only

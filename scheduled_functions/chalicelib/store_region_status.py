@@ -134,6 +134,7 @@ def store():
 
                 region_info = {
                     "region_name": {"S": region_name},
+                    "partition": {"S": "aws"},
                     'status': {"S": status},
                     'is_opt_in': {"BOOL": is_opt_in},
                     'ping_function_exists': {"BOOL": function_exists},

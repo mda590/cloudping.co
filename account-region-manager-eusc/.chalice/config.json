@@ -1,0 +1,11 @@
+{
+  "version": "2.0",
+  "app_name": "account-region-manager-eusc",
+  "autogen_policy": false,
+  "stages": {},
+  "tags": {
+    "application": "cloudping",
+    "component": "account-region-manager-eusc",
+    "partition": "aws-eusc"
+  }
+}

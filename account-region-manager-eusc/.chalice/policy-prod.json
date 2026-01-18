@@ -1,0 +1,22 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Action": [
+            "ec2:DescribeRegions",
+            "sts:GetCallerIdentity"
+          ],
+          "Resource": "*",
+          "Effect": "Allow"
+      },
+      {
+          "Action": [
+              "logs:CreateLogGroup",
+              "logs:CreateLogStream",
+              "logs:PutLogEvents"
+          ],
+          "Resource": "arn:aws-eusc:logs:*:*:*",
+          "Effect": "Allow"
+      }
+  ]
+}

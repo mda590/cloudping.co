@@ -1,0 +1,22 @@
+{
+  "resources": [
+    {
+      "name": "deploy_role",
+      "resource_type": "iam_role",
+      "role_arn": "arn:aws-eusc:iam::075395615672:role/ping-function-deployer-eusc-prod-deploy",
+      "role_name": "ping-function-deployer-eusc-prod-deploy"
+    },
+    {
+      "name": "deploy",
+      "resource_type": "lambda_function",
+      "lambda_arn": "arn:aws-eusc:lambda:eusc-de-east-1:075395615672:function:ping-function-deployer-eusc-prod-deploy"
+    },
+    {
+      "name": "deploy-event",
+      "resource_type": "cloudwatch_event",
+      "rule_name": "ping-function-deployer-eusc-prod-deploy-event"
+    }
+  ],
+  "schema_version": "2.0",
+  "backend": "api"
+}

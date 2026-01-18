@@ -1,0 +1,14 @@
+{
+  "version": "2.0",
+  "app_name": "store-region-status-eusc",
+  "autogen_policy": false,
+  "stages": {
+    "prod": {}
+  },
+  "tags": {
+    "application": "cloudping",
+    "component": "store-region-status-eusc",
+    "partition": "aws-eusc"
+  },
+  "lambda_timeout": 120
+}

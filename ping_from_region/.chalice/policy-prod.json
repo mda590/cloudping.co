@@ -7,6 +7,19 @@
             "Effect": "Allow"
         },
         {
+            "Action": [
+                "dynamodb:Scan",
+                "dynamodb:Query"
+            ],
+            "Resource": "arn:aws:dynamodb:us-east-2:506666621600:table/cloudping_regions_enhanced",
+            "Effect": "Allow"
+        },
+        {
+            "Action": "secretsmanager:GetSecretValue",
+            "Resource": "arn:aws:secretsmanager:*:506666621600:secret:cloudping/*",
+            "Effect": "Allow"
+        },
+        {
             "Action": "ec2:DescribeRegions",
             "Resource": "*",
             "Effect": "Allow"
