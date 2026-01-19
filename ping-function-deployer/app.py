@@ -150,7 +150,7 @@ def deploy_lambda(source_function_name, target_function_name, region):
             
             # Get the function code
             code_response = source_lambda.get_function(FunctionName=source_function_name)
-            code_location = response['Code']['Location']
+            code_location = code_response['Code']['Location']
             
             # Update function code
             target_lambda.update_function_code(

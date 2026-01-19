@@ -88,10 +88,21 @@ def get_latencies():
                 FilterExpression=Attr('timeframe').eq(timeframe)
             )
         else:
-            # Query for all regions
-            response = latencies_table.scan(
-                FilterExpression=Attr('timeframe').eq(timeframe)
-            )
+            # Query for all regions with pagination
+            items = []
+            last_key = None
+
+            while True:
+                kwargs = {'FilterExpression': Attr('timeframe').eq(timeframe)}
+                if last_key:
+                    kwargs['ExclusiveStartKey'] = last_key
+
+                response = latencies_table.scan(**kwargs)
+                items.extend(response.get('Items', []))
+
+                last_key = response.get('LastEvaluatedKey')
+                if not last_key:
+                    break
 
         # Process and format the data
         result = {
@@ -104,7 +115,9 @@ def get_latencies():
         }
 
         # Transform the data into the matrix format
-        for item in response.get('Items', []):
+        # Use paginated items for scan, response items for query
+        data_items = items if not (from_region and to_region) else response.get('Items', [])
+        for item in data_items:
             from_reg = item['region_from']
             to_reg = item['region_to']
             if from_reg not in result['data']:

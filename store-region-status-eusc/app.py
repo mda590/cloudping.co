@@ -23,7 +23,7 @@ app = Chalice(app_name='store-region-status-eusc')
 # EUSC-specific configuration
 EUSC_HUB_REGION = 'eusc-de-east-1'
 MAIN_AWS_DYNAMODB_REGION = 'us-east-2'
-PING_FUNCTION_NAME = 'ping_from_region-prod-ping'
+PING_FUNCTION_NAME = 'ping_from_region-eusc-ping'
 
 # Known EUSC regions - hardcoded since account:ListRegions is not available in EUSC
 # Update this list as new EUSC regions become available
@@ -64,6 +64,38 @@ def check_function_exists(region_name):
             return False
         print(f"Error checking function in {region_name}: {str(e)}")
         return False
+
+
+def get_earliest_timestamp(dynamodb_client, region_name):
+    """Get the earliest ping data timestamp for a region from PingTest table."""
+    response = dynamodb_client.query(
+        TableName='PingTest',
+        IndexName='region-timestamp-index',
+        KeyConditionExpression='#r = :region',
+        ExpressionAttributeNames={'#r': 'region'},
+        ExpressionAttributeValues={':region': {'S': region_name}},
+        Limit=1,
+        ScanIndexForward=True  # Ascending order (earliest first)
+    )
+    if response.get('Items'):
+        return response['Items'][0]['timestamp']['S']
+    return None
+
+
+def get_latest_timestamp(dynamodb_client, region_name):
+    """Get the most recent ping data timestamp for a region from PingTest table."""
+    response = dynamodb_client.query(
+        TableName='PingTest',
+        IndexName='region-timestamp-index',
+        KeyConditionExpression='#r = :region',
+        ExpressionAttributeNames={'#r': 'region'},
+        ExpressionAttributeValues={':region': {'S': region_name}},
+        Limit=1,
+        ScanIndexForward=False  # Descending order (latest first)
+    )
+    if response.get('Items'):
+        return response['Items'][0]['timestamp']['S']
+    return None
 
 
 def chunk_list(lst, chunk_size):
@@ -154,6 +186,10 @@ def store(event):
             # Check if ping function exists in this region
             function_exists = check_function_exists(region_name)
 
+            # Get timestamp data from PingTest table
+            earliest_timestamp = get_earliest_timestamp(dynamodb, region_name)
+            most_recent_timestamp = get_latest_timestamp(dynamodb, region_name)
+
             # EUSC regions are opt-in by default
             region_info = {
                 "region_name": {"S": region_name},
@@ -161,7 +197,8 @@ def store(event):
                 "status": {"S": "ENABLED"},
                 "is_opt_in": {"BOOL": True},
                 "ping_function_exists": {"BOOL": function_exists},
-                "last_updated": {"S": current_time},
+                "earliest_data_timestamp": {"S": str(earliest_timestamp)},
+                "most_recent_data_timestamp": {"S": str(most_recent_timestamp)},
             }
             print(f"Storing EUSC region info: {region_info}")
 
