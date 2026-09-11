@@ -41,22 +41,10 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
     if (data?.data) {
       const newRegions = Object.keys(data.data).sort();
       setSelectedRegions(prevSelected => {
-        // Add any new regions to the selection
-        const updatedSelection = [...prevSelected];
-        let changed = false;
-        
-        newRegions.forEach(region => {
-          if (!prevSelected.includes(region)) {
-            updatedSelection.push(region);
-            changed = true;
-          }
-        });
-        
-        // Only update state if there were changes
-        return changed ? updatedSelection : prevSelected;
+        return prevSelected.filter((region) => newRegions.includes(region));
       });
     }
-  }, [data]); // Remove selectedRegions from dependency array
+  }, [data]);
 
   const getLatencyColor = (latency: number): string => {
     if (latency < 100) return 'bg-green-500';
