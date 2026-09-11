@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import StripeButton from './StripeButton';
 import RegionFilterPanel from './RegionFilterPanel';
@@ -36,15 +36,24 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
   // State for selected regions (initially all regions)
   const [selectedRegions, setSelectedRegions] = useState<string[]>(allRegions);
   
-  // Update selected regions when data changes
-  useEffect(() => {
+  // Drop any selected regions that are absent from newly fetched data, so the
+  // selection never references regions the current payload does not contain.
+  // Adjusted during render rather than in an effect: setState in an effect body
+  // triggers a second render pass, which Next.js 16's lint config flags as
+  // react-hooks/set-state-in-effect.
+  // See https://react.dev/learn/you-might-not-need-an-effect
+  const [prevData, setPrevData] = useState(data);
+  if (data !== prevData) {
+    setPrevData(data);
     if (data?.data) {
-      const newRegions = Object.keys(data.data).sort();
-      setSelectedRegions(prevSelected => {
-        return prevSelected.filter((region) => newRegions.includes(region));
-      });
+      const stillPresent = selectedRegions.filter(region =>
+        allRegions.includes(region)
+      );
+      if (stillPresent.length !== selectedRegions.length) {
+        setSelectedRegions(stillPresent);
+      }
     }
-  }, [data]);
+  }
 
   const getLatencyColor = (latency: number): string => {
     if (latency < 100) return 'bg-green-500';
