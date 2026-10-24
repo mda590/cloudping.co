@@ -8,113 +8,215 @@
 | `cloudping-api`, `scheduled_functions`, `ping_from_region`, `ping-function-deployer`, `account-region-manager` | `deploy-chalice.yml`, once the role below exists. Until then, `chalice deploy --stage prod` by hand. |
 | `*-eusc` services | Manual only. See "Why EUSC is excluded". |
 
-## One-time AWS setup
+## AWS setup (done)
 
-`deploy-chalice.yml` authenticates with GitHub's OIDC provider, so there are no
-long-lived keys in GitHub. Neither the provider nor the role exists yet.
+The provider, role and policy below already exist in account `506666621600`.
+This section records what was created and why it is scoped the way it is;
+there is nothing to run unless you are rebuilding it.
 
-### 1. Register GitHub as an OIDC provider
+| Resource | Name |
+| --- | --- |
+| OIDC provider | `token.actions.githubusercontent.com` |
+| Role | `cloudping-github-deploy` |
+| Policy | `cloudping-github-deploy-policy` (customer managed, attached) |
+| Repo secret | `AWS_DEPLOY_ROLE_ARN` |
 
-```bash
-aws iam create-open-id-connect-provider \
-  --url https://token.actions.githubusercontent.com \
-  --client-id-list sts.amazonaws.com
-```
+### Trust
 
-### 2. Create the deploy role
-
-`trust-policy.json`, scoped so only workflows running on `main` can assume it:
+Only workflows running on this repo's `main` can assume the role:
 
 ```json
-{
-  "Version": "2012-10-17",
-  "Statement": [{
-    "Effect": "Allow",
-    "Principal": {
-      "Federated": "arn:aws:iam::506666621600:oidc-provider/token.actions.githubusercontent.com"
-    },
-    "Action": "sts:AssumeRoleWithWebIdentity",
-    "Condition": {
-      "StringEquals": {
-        "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-        "token.actions.githubusercontent.com:sub": "repo:mda590/cloudping.co:ref:refs/heads/main"
-      }
-    }
-  }]
+"Condition": {
+  "StringEquals": {
+    "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+    "token.actions.githubusercontent.com:sub": "repo:mda590/cloudping.co:ref:refs/heads/main"
+  }
 }
 ```
 
-```bash
-aws iam create-role \
-  --role-name cloudping-github-deploy \
-  --assume-role-policy-document file://trust-policy.json
-```
+A workflow on a branch, a tag, or a fork's pull request gets a different `sub`
+and cannot assume it. Widening this to `ref:refs/heads/*` or `*` would hand the
+permissions below to anyone who can push a branch — don't.
 
-### 3. Attach deploy permissions
+### Permissions
 
-Chalice creates and updates the Lambda functions, their IAM roles, the
-EventBridge schedules and the REST API, so the role needs all of it:
+Scoped per service rather than by a shared `*-prod-*` wildcard. That wildcard
+is tempting and wrong: this account also contains `CloudFix-prod-*` (four roles
+belonging to a third-party cost tool), `twitter-followers-prod-*` and
+`cloudping-scheduled-calculations-prod-*`, none of which this repo deploys. The
+same goes for `events:*` on `"*"` — the account has unrelated rules like
+`StopPingInstances` — and for `apigateway:*` on `/restapis*`, since there are
+14 REST APIs here and only `qq1pwh7bv4` is ours.
 
 ```json
 {
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Sid": "ManageTheseLambdaFunctionsOnly",
       "Effect": "Allow",
       "Action": [
-        "lambda:CreateFunction", "lambda:UpdateFunctionCode",
-        "lambda:UpdateFunctionConfiguration", "lambda:GetFunction",
-        "lambda:GetFunctionConfiguration", "lambda:AddPermission",
-        "lambda:RemovePermission", "lambda:GetPolicy",
-        "lambda:TagResource", "lambda:ListTags", "lambda:PublishVersion"
+        "lambda:CreateFunction",
+        "lambda:DeleteFunction",
+        "lambda:UpdateFunctionCode",
+        "lambda:UpdateFunctionConfiguration",
+        "lambda:GetFunction",
+        "lambda:GetFunctionConfiguration",
+        "lambda:AddPermission",
+        "lambda:RemovePermission",
+        "lambda:GetPolicy",
+        "lambda:TagResource",
+        "lambda:UntagResource",
+        "lambda:ListTags",
+        "lambda:PublishVersion"
       ],
-      "Resource": "arn:aws:lambda:us-east-2:506666621600:function:*"
+      "Resource": [
+        "arn:aws:lambda:us-east-2:506666621600:function:cloudping-api-prod*",
+        "arn:aws:lambda:us-east-2:506666621600:function:scheduled_functions-prod*",
+        "arn:aws:lambda:us-east-2:506666621600:function:ping_from_region-prod*",
+        "arn:aws:lambda:us-east-2:506666621600:function:ping-function-deployer-prod*",
+        "arn:aws:lambda:us-east-2:506666621600:function:account-region-manager-prod*"
+      ]
     },
     {
+      "Sid": "ReadThePandasLayer",
       "Effect": "Allow",
       "Action": [
-        "events:PutRule", "events:PutTargets", "events:DescribeRule",
-        "events:ListTargetsByRule", "events:ListRules",
-        "events:RemoveTargets", "events:DeleteRule", "events:TagResource"
+        "lambda:GetLayerVersion"
       ],
-      "Resource": "*"
+      "Resource": "arn:aws:lambda:us-east-2:336392948345:layer:AWSSDKPandas-Python313:*"
     },
     {
-      "Effect": "Allow",
-      "Action": "apigateway:*",
-      "Resource": "arn:aws:apigateway:us-east-2::/restapis*"
-    },
-    {
+      "Sid": "ManageTheseScheduleRulesOnly",
       "Effect": "Allow",
       "Action": [
-        "iam:CreateRole", "iam:GetRole", "iam:PutRolePolicy",
-        "iam:GetRolePolicy", "iam:DeleteRolePolicy",
-        "iam:ListRolePolicies", "iam:UpdateAssumeRolePolicy", "iam:TagRole"
+        "events:PutRule",
+        "events:DeleteRule",
+        "events:DescribeRule",
+        "events:PutTargets",
+        "events:RemoveTargets",
+        "events:ListTargetsByRule",
+        "events:TagResource",
+        "events:UntagResource",
+        "events:ListTagsForResource"
       ],
-      "Resource": "arn:aws:iam::506666621600:role/*-prod-*"
+      "Resource": [
+        "arn:aws:events:us-east-2:506666621600:rule/cloudping-api-prod-*",
+        "arn:aws:events:us-east-2:506666621600:rule/scheduled_functions-prod-*",
+        "arn:aws:events:us-east-2:506666621600:rule/ping_from_region-prod-*",
+        "arn:aws:events:us-east-2:506666621600:rule/ping-function-deployer-prod-*",
+        "arn:aws:events:us-east-2:506666621600:rule/account-region-manager-prod-*"
+      ]
     },
     {
+      "Sid": "ManageTheCloudpingRestApiOnly",
+      "Effect": "Allow",
+      "Action": [
+        "apigateway:GET",
+        "apigateway:POST",
+        "apigateway:PUT",
+        "apigateway:PATCH",
+        "apigateway:DELETE"
+      ],
+      "Resource": [
+        "arn:aws:apigateway:us-east-2::/restapis/qq1pwh7bv4",
+        "arn:aws:apigateway:us-east-2::/restapis/qq1pwh7bv4/*"
+      ]
+    },
+    {
+      "Sid": "ManageTheseLambdaExecutionRolesOnly",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:GetRole",
+        "iam:TagRole",
+        "iam:PutRolePolicy",
+        "iam:GetRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:ListRolePolicies",
+        "iam:UpdateAssumeRolePolicy"
+      ],
+      "Resource": [
+        "arn:aws:iam::506666621600:role/cloudping-api-prod-*",
+        "arn:aws:iam::506666621600:role/scheduled_functions-prod-*",
+        "arn:aws:iam::506666621600:role/ping_from_region-prod-*",
+        "arn:aws:iam::506666621600:role/ping-function-deployer-prod-*",
+        "arn:aws:iam::506666621600:role/account-region-manager-prod-*"
+      ]
+    },
+    {
+      "Sid": "PassThoseRolesToLambdaOnly",
       "Effect": "Allow",
       "Action": "iam:PassRole",
-      "Resource": "arn:aws:iam::506666621600:role/*-prod-*"
+      "Resource": [
+        "arn:aws:iam::506666621600:role/cloudping-api-prod-*",
+        "arn:aws:iam::506666621600:role/scheduled_functions-prod-*",
+        "arn:aws:iam::506666621600:role/ping_from_region-prod-*",
+        "arn:aws:iam::506666621600:role/ping-function-deployer-prod-*",
+        "arn:aws:iam::506666621600:role/account-region-manager-prod-*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "lambda.amazonaws.com"
+        }
+      }
     }
   ]
 }
 ```
 
-**This role is close to administrative.** `iam:CreateRole` plus
-`iam:PutRolePolicy` plus `iam:PassRole` lets its holder build a role with any
-permissions and hand it to a Lambda. The resource patterns above narrow it to
-`*-prod-*` role names, and the trust policy narrows it to this repo's `main`
-branch, but anyone who can merge to `main` can effectively reach these
-permissions. That is the trade for not running deploys from a laptop; decide
-with that in mind.
+Verified by expanding each pattern against the live account: 8 Lambda
+functions, 8 IAM roles and 6 EventBridge rules are in scope, and every
+unrelated `-prod-` resource is out. Spot-checked with
+`aws iam simulate-principal-policy`, which returns `implicitDeny` for
+`iam:PutRolePolicy` on a CloudFix role, `lambda:UpdateFunctionCode` on
+`twitter-followers`, `apigateway:DELETE` on another API, `events:DeleteRule` on
+`StopPingInstances`, `dynamodb:DeleteTable` on `PingTest`, and `iam:CreateUser`.
 
-### 4. Store the role ARN
+### Residual risk
+
+`iam:PutRolePolicy` + `iam:PassRole` still means anyone who can merge to `main`
+can give one of the eight cloudping Lambda roles an arbitrary inline policy and
+invoke it. The scoping above bounds *which* roles, not what policy they can be
+given, so treat merge access to `main` as close to admin on this account.
+
+Two things narrow it. `iam:AttachRolePolicy` is deliberately **not** granted, so
+no managed policy — `AdministratorAccess` included — can be attached; Chalice
+only writes inline policies, so it does not need it. And `iam:PassRole` is
+conditioned on `iam:PassedToService: lambda.amazonaws.com`, so these roles
+cannot be handed to EC2 or anything else.
+
+Closing it properly means putting a permissions boundary on the eight Lambda
+roles, so an over-broad inline policy has no effect. Chalice's `create_role`
+does not set one, so a new function would need the boundary attached by hand
+afterwards. Worth doing; not done here, because it changes eight live
+production roles and that deserves its own change.
+
+### Rebuilding it
 
 ```bash
+aws iam create-open-id-connect-provider \
+  --url https://token.actions.githubusercontent.com \
+  --client-id-list sts.amazonaws.com
+
+aws iam create-role --role-name cloudping-github-deploy \
+  --assume-role-policy-document file://trust-policy.json
+
+aws iam create-policy --policy-name cloudping-github-deploy-policy \
+  --policy-document file://deploy-policy.json
+aws iam attach-role-policy --role-name cloudping-github-deploy \
+  --policy-arn arn:aws:iam::506666621600:policy/cloudping-github-deploy-policy
+
 gh secret set AWS_DEPLOY_ROLE_ARN \
   --body arn:aws:iam::506666621600:role/cloudping-github-deploy
+```
+
+To revoke access in a hurry, detach the policy — that leaves the audit trail
+intact, unlike deleting the role:
+
+```bash
+aws iam detach-role-policy --role-name cloudping-github-deploy \
+  --policy-arn arn:aws:iam::506666621600:policy/cloudping-github-deploy-policy
 ```
 
 ## Why the workflow pushes a commit
