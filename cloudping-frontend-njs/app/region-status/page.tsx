@@ -31,7 +31,7 @@ export default async function RegionStatusPage() {
     <div className="max-w-6xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold text-white mb-6">Region Status</h1>
       
-      <div className="overflow-x-auto border border-zinc-700 rounded">
+      <div className="overflow-x-auto border border-zinc-700 rounded-sm">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr>

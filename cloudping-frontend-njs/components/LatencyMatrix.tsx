@@ -20,9 +20,11 @@ interface LatencyData {
 
 interface LatencyMatrixProps {
   initialData: LatencyData;
+  /** Friendly region names keyed by region code, e.g. eu-south-2 -> Europe (Spain). */
+  regionNames?: Record<string, string>;
 }
 
-export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
+export default function LatencyMatrix({ initialData, regionNames = {} }: LatencyMatrixProps) {
   const [selectedPercentile, setSelectedPercentile] = useState('p_50');
   const [selectedTimeframe, setSelectedTimeframe] = useState('1D');
   const [data, setData] = useState<LatencyData | null>(initialData);
@@ -109,7 +111,7 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
       </div>
       
       {error && (
-        <div className="mb-4 p-2 bg-red-900/50 border border-red-500 text-red-200 rounded text-sm">
+        <div className="mb-4 p-2 bg-red-900/50 border border-red-500 text-red-200 rounded-sm text-sm">
           {error}
         </div>
       )}
@@ -124,7 +126,7 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
               updateData(newValue, selectedTimeframe); // Pass the new value directly
             }}
             disabled={isLoading}
-            className="bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-white w-36 text-sm disabled:opacity-50"
+            className="bg-zinc-700 border border-zinc-600 rounded-sm px-2 py-1 text-white w-36 text-sm disabled:opacity-50"
           >
             {['p_10', 'p_25', 'p_50', 'p_75', 'p_90', 'p_98', 'p_99'].map((p) => (
               <option key={p} value={p}>
@@ -143,7 +145,7 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
               updateData(selectedPercentile, newValue); // Pass the new value directly
             }}
             disabled={isLoading}
-            className="bg-zinc-700 border border-zinc-600 rounded px-2 py-1 text-white w-36 text-sm disabled:opacity-50"
+            className="bg-zinc-700 border border-zinc-600 rounded-sm px-2 py-1 text-white w-36 text-sm disabled:opacity-50"
           >
             <option value="1D">1 Day</option>
             <option value="1W">1 Week</option>
@@ -154,7 +156,7 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
 
         <button
           onClick={() => setIsFilterPanelOpen(true)}
-          className="bg-zinc-700 hover:bg-zinc-600 border border-zinc-600 rounded px-3 py-1 text-white text-sm flex items-center gap-1.5"
+          className="bg-zinc-700 hover:bg-zinc-600 border border-zinc-600 rounded-sm px-3 py-1 text-white text-sm flex items-center gap-1.5"
           disabled={isLoading}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -171,13 +173,17 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
         </div>
       </div>
 
-      <div className="overflow-x-auto border border-zinc-700 rounded">
+      <div className="overflow-x-auto border border-zinc-700 rounded-sm">
         <table className="w-full border-collapse text-xs">
           <thead>
             <tr>
               <th className="p-2 border border-zinc-700 bg-zinc-800 text-white text-left sticky left-0 z-10">To \ From</th>
               {displayRegions.map(region => (
-                <th key={region} className="p-2 border border-zinc-700 bg-zinc-800 text-white font-medium text-left whitespace-nowrap">
+                <th
+                  key={region}
+                  title={regionNames[region]}
+                  className="p-2 border border-zinc-700 bg-zinc-800 text-white font-medium text-left whitespace-nowrap"
+                >
                   {region}
                 </th>
               ))}
@@ -186,7 +192,10 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
           <tbody className={isLoading ? 'opacity-50' : ''}>
             {displayRegions.map(fromRegion => (
               <tr key={fromRegion}>
-                <td className="p-2 border border-zinc-700 bg-zinc-800 text-white font-medium sticky left-0 z-10 whitespace-nowrap">
+                <td
+                  title={regionNames[fromRegion]}
+                  className="p-2 border border-zinc-700 bg-zinc-800 text-white font-medium sticky left-0 z-10 whitespace-nowrap"
+                >
                   {fromRegion}
                 </td>
                 {displayRegions.map(toRegion => {

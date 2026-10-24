@@ -10,7 +10,7 @@ export default function StripeButton() {
       href={STRIPE_CHECKOUT_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className="bg-gradient-to-b from-blue-600 to-blue-700 border border-blue-500 rounded px-3 py-1 text-white text-sm hover:from-blue-500 hover:to-blue-600 transition-all flex items-center gap-1.5"
+      className="bg-linear-to-b/srgb from-blue-600 to-blue-700 border border-blue-500 rounded-sm px-3 py-1 text-white text-sm hover:from-blue-500 hover:to-blue-600 transition-all flex items-center gap-1.5"
     >
       <Heart size={14} className="text-pink-300" />
       <span>Support this project</span>

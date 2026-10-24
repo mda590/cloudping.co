@@ -1,0 +1,225 @@
+name: Deploy Chalice services
+
+# Chalice records the identity of every deployed resource in
+# .chalice/deployed/prod.json, which is committed to this repo. That file is why
+# this workflow pushes a commit back after a deploy: without it the next run
+# would not recognise the existing resources and would create duplicates. For
+# cloudping-api that means a brand new REST API id while api.cloudping.co stays
+# mapped to the old one, so the deploy looks fine and production serves stale
+# code. Treat .chalice/deployed/* as production state.
+#
+# EUSC services are deliberately absent. They live in a separate account in the
+# aws-eusc partition, which has no GitHub OIDC provider, so they stay manual.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cloudping-api/**'
+      - 'scheduled_functions/**'
+      - 'ping_from_region/**'
+      - 'ping-function-deployer/**'
+      - 'account-region-manager/**'
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to deploy'
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - cloudping-api
+          - scheduled_functions
+          - ping_from_region
+          - ping-function-deployer
+          - account-region-manager
+
+# Deploys push the state file back to main, so never run two at once.
+concurrency:
+  group: chalice-deploy
+  cancel-in-progress: false
+
+permissions:
+  id-token: write   # mint the OIDC token AWS trusts
+  contents: write   # push the updated state file back
+
+env:
+  AWS_REGION: us-east-2
+  # Chalice builds the deployment package with whatever interpreter it runs
+  # under, and that is what sets the Lambda runtime. Deploying a service with
+  # the wrong one silently changes its runtime -- which for scheduled_functions
+  # would also orphan the AWSSDKPandas-Python313 layer and break numpy/pandas.
+  # These must match the live functions; check with:
+  #   aws lambda list-functions --query 'Functions[].[FunctionName,Runtime]'
+  SERVICE_PYTHON: >-
+    {
+      "cloudping-api": "3.11",
+      "scheduled_functions": "3.13",
+      "ping_from_region": "3.13",
+      "ping-function-deployer": "3.11",
+      "account-region-manager": "3.11"
+    }
+
+jobs:
+  select:
+    name: Pick services to deploy
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.pick.outputs.services }}
+      any: ${{ steps.pick.outputs.any }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - id: pick
+        name: Decide which services to deploy
+        env:
+          EVENT: ${{ github.event_name }}
+          REQUESTED: ${{ inputs.service }}
+        run: |
+          set -euo pipefail
+
+          ALL_SERVICES=$(echo "$SERVICE_PYTHON" | jq -r 'keys_unsorted | join(" ")')
+
+          # A manual run naming one service deploys it whatever the diff says;
+          # a manual "all" deploys every service. Only a push consults the diff.
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            if [ "$REQUESTED" = "all" ]; then
+              SELECTED="$ALL_SERVICES"
+            else
+              SELECTED="$REQUESTED"
+            fi
+          else
+            SELECTED=""
+            for svc in $ALL_SERVICES; do
+              # Ignore changes that are only to the state file we push ourselves.
+              CHANGED=$(git diff --name-only HEAD^ HEAD -- "$svc" \
+                | grep -v "^$svc/.chalice/deployed/" || true)
+              if [ -n "$CHANGED" ]; then
+                SELECTED="$SELECTED $svc"
+              fi
+            done
+          fi
+
+          # Guard the empty case explicitly: `printf '%s\n' $EMPTY` emits one
+          # blank line, which jq would turn into [""] rather than [].
+          if [ -z "${SELECTED// /}" ]; then
+            echo 'services=[]' >> "$GITHUB_OUTPUT"
+            echo 'any=false' >> "$GITHUB_OUTPUT"
+            echo 'No service changes to deploy.'
+            exit 0
+          fi
+
+          # Each matrix entry carries its own Python version, so a service is
+          # never built with another service's runtime.
+          JSON=$(printf '%s\n' $SELECTED | jq -R . | jq -cs . \
+            | jq -c --argjson map "$SERVICE_PYTHON" 'map({service: ., python: $map[.]})')
+
+          # A service with no mapped runtime would otherwise deploy under the
+          # runner's default Python and quietly change the function's runtime.
+          if echo "$JSON" | jq -e 'any(.[]; .python == null)' >/dev/null; then
+            echo "::error::No Python version mapped in SERVICE_PYTHON for one of:$SELECTED"
+            exit 1
+          fi
+
+          echo "services=$JSON" >> "$GITHUB_OUTPUT"
+          echo "any=true" >> "$GITHUB_OUTPUT"
+          echo "Will deploy:$SELECTED"
+
+  deploy:
+    name: Deploy ${{ matrix.target.service }} (py${{ matrix.target.python }})
+    needs: select
+    if: needs.select.outputs.any == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      # Serial, so the state-file pushes cannot race each other.
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.select.outputs.services) }}
+    steps:
+      # Checks out the branch rather than the triggering commit, so the state
+      # file can be committed back. If a newer commit has landed meanwhile this
+      # deploys that one, which is the intent.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.target.python }}
+
+      - name: Install chalice and service requirements
+        working-directory: ${{ matrix.target.service }}
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          # Pinned so a chalice release cannot silently change deploy behaviour.
+          pip install 'chalice==1.32.0'
+          pip install -r requirements.txt
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Show the deploy target
+        run: |
+          set -euo pipefail
+          aws sts get-caller-identity
+          echo "Region: $AWS_REGION"
+
+      - name: Note the REST API id before deploying
+        id: before
+        working-directory: ${{ matrix.target.service }}
+        run: |
+          set -euo pipefail
+          API_ID=''
+          if [ -f .chalice/deployed/prod.json ]; then
+            API_ID=$(jq -r '.resources[] | select(.resource_type=="rest_api") | .rest_api_id // empty' \
+              .chalice/deployed/prod.json)
+          fi
+          echo "api_id=$API_ID" >> "$GITHUB_OUTPUT"
+
+      - name: chalice deploy --stage prod
+        working-directory: ${{ matrix.target.service }}
+        run: chalice deploy --stage prod
+
+      - name: Fail if the REST API was replaced
+        working-directory: ${{ matrix.target.service }}
+        env:
+          BEFORE: ${{ steps.before.outputs.api_id }}
+        run: |
+          set -euo pipefail
+          if [ -z "$BEFORE" ]; then
+            echo "No REST API in this service, nothing to compare."
+            exit 0
+          fi
+          AFTER=$(jq -r '.resources[] | select(.resource_type=="rest_api") | .rest_api_id // empty' \
+            .chalice/deployed/prod.json)
+          if [ "$BEFORE" != "$AFTER" ]; then
+            echo "::error::REST API id changed: $BEFORE -> $AFTER"
+            echo "::error::api.cloudping.co is still mapped to $BEFORE, so production is serving the old API."
+            echo "::error::Repoint the base path mapping, or restore the previous state file and investigate."
+            exit 1
+          fi
+          echo "REST API id unchanged ($AFTER)."
+
+      - name: Commit the updated deployment state
+        env:
+          SERVICE: ${{ matrix.target.service }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- "$SERVICE/.chalice/deployed/"; then
+            echo "Deployment state unchanged, nothing to commit."
+            exit 0
+          fi
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add "$SERVICE/.chalice/deployed/"
+          # [skip ci] stops this push from triggering the workflow again.
+          git commit -m "chore($SERVICE): update chalice deployment state [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
