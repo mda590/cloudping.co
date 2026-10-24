@@ -45,7 +45,7 @@ export default function HubSpokeVisualization({ latencyData }: Props) {
         <select
           value={selectedRegion}
           onChange={(e) => setSelectedRegion(e.target.value)}
-          className="bg-zinc-700 border border-zinc-600 rounded px-3 py-1 text-white"
+          className="bg-zinc-700 border border-zinc-600 rounded-sm px-3 py-1 text-white"
         >
           {regions.map(region => (
             <option key={region} value={region}>{region}</option>
@@ -53,7 +53,7 @@ export default function HubSpokeVisualization({ latencyData }: Props) {
         </select>
       </div>
 
-      <div className="border border-zinc-700 rounded bg-zinc-800/50 p-4">
+      <div className="border border-zinc-700 rounded-sm bg-zinc-800/50 p-4">
         <svg width="800" height="800" viewBox="0 0 800 800">
           {/* Draw connections */}
           {otherRegions.map((region, index) => {
