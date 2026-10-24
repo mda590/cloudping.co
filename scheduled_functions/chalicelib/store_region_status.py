@@ -6,6 +6,12 @@ from boto3.dynamodb.conditions import Key, Attr
 # DynamoDB Table is always in us-east-2
 client = boto3.client('dynamodb', region_name="us-east-2")
 
+# SSM in us-east-1 publishes the authoritative long name for every region in
+# every partition, EUSC included, so new regions pick up a display name without
+# anyone maintaining a list of them.
+SSM_LONG_NAME_REGION = 'us-east-1'
+LONG_NAME_PATH = '/aws/service/global-infrastructure/regions/{}/longName'
+
 def chunk_list(lst, chunk_size):
     """Split a list into smaller chunks of specified size"""
     return [lst[i:i + chunk_size] for i in range(0, len(lst), chunk_size)]
@@ -36,6 +42,35 @@ def handle_unprocessed_items(client, unprocessed_items, max_retries=3):
         print(f"Warning: {len(items)} items remained unprocessed after all retries")
     
     return items
+
+def get_region_long_names(region_names):
+    """Map region codes to their AWS long names, e.g. eu-south-2 -> Europe (Spain).
+
+    Returns {} if SSM cannot be reached, and omits any region SSM does not know
+    about: a missing long name costs a tooltip in the UI, not the whole run.
+    """
+    long_names = {}
+
+    try:
+        ssm = boto3.client('ssm', region_name=SSM_LONG_NAME_REGION)
+
+        # get_parameters accepts at most 10 names per call
+        for batch in chunk_list(list(region_names), 10):
+            response = ssm.get_parameters(
+                Names=[LONG_NAME_PATH.format(region) for region in batch]
+            )
+
+            for param in response['Parameters']:
+                # /aws/service/global-infrastructure/regions/<code>/longName
+                long_names[param['Name'].split('/')[-2]] = param['Value']
+
+            if response.get('InvalidParameters'):
+                print(f"No long name in SSM for: {response['InvalidParameters']}")
+
+    except Exception as e:
+        print(f"Warning: could not load region long names from SSM: {str(e)}")
+
+    return long_names
 
 def write_results(results):
     """Write results to DynamoDB with chunking and retry logic"""
@@ -122,32 +157,50 @@ def store():
         paginator = client.get_paginator('list_regions')
         page_iterator = paginator.paginate()
         enabled_regions = []
-        
-        for page in page_iterator:
-            for region in page['Regions']:
-                region_name = region['RegionName']
-                status = region['RegionOptStatus']
-                is_opt_in = True if status != "ENABLED_BY_DEFAULT" else False
+
+        # Collect the region list first so the long names can be resolved in a
+        # single batch of SSM calls rather than one per region.
+        regions = [
+            (region['RegionName'], region['RegionOptStatus'])
+            for page in page_iterator
+            for region in page['Regions']
+        ]
+        long_names = get_region_long_names(region_name for region_name, _ in regions)
+
+        for region_name, status in regions:
+            is_opt_in = True if status != "ENABLED_BY_DEFAULT" else False
+
+            try:
                 function_exists = check_function_exists(region_name)
-                earliest_timestamp = get_earliest_timestamp(region_name)
-                most_recent_timestamp = get_latest_timestamp(region_name)
+            except Exception as e:
+                print(f"Warning: could not check function in {region_name}: {e}")
+                function_exists = False
 
-                region_info = {
-                    "region_name": {"S": region_name},
-                    "partition": {"S": "aws"},
-                    'status': {"S": status},
-                    'is_opt_in': {"BOOL": is_opt_in},
-                    'ping_function_exists': {"BOOL": function_exists},
-                    'earliest_data_timestamp': {"S": str(earliest_timestamp)},
-                    'most_recent_data_timestamp': {"S": str(most_recent_timestamp)},
+            earliest_timestamp = get_earliest_timestamp(region_name)
+            most_recent_timestamp = get_latest_timestamp(region_name)
+
+            region_info = {
+                "region_name": {"S": region_name},
+                "partition": {"S": "aws"},
+                'status': {"S": status},
+                'is_opt_in': {"BOOL": is_opt_in},
+                'ping_function_exists': {"BOOL": function_exists},
+                'earliest_data_timestamp': {"S": str(earliest_timestamp)},
+                'most_recent_data_timestamp': {"S": str(most_recent_timestamp)},
+            }
+
+            # Omitted when SSM has no name for the region, so consumers can tell
+            # "unknown" apart from a region genuinely named after its code.
+            if region_name in long_names:
+                region_info['region_long_name'] = {"S": long_names[region_name]}
+
+            print("Storing region info:", region_info)
+
+            enabled_regions.append({
+                "PutRequest": {
+                    "Item": region_info
                 }
-                print("Storing region info:", region_info)
-
-                enabled_regions.append({
-                    "PutRequest": {
-                        "Item": region_info
-                    }
-                })
+            })
 
         write_results(enabled_regions)
 

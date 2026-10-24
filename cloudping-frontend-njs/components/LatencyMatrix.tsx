@@ -20,9 +20,11 @@ interface LatencyData {
 
 interface LatencyMatrixProps {
   initialData: LatencyData;
+  /** Friendly region names keyed by region code, e.g. eu-south-2 -> Europe (Spain). */
+  regionNames?: Record<string, string>;
 }
 
-export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
+export default function LatencyMatrix({ initialData, regionNames = {} }: LatencyMatrixProps) {
   const [selectedPercentile, setSelectedPercentile] = useState('p_50');
   const [selectedTimeframe, setSelectedTimeframe] = useState('1D');
   const [data, setData] = useState<LatencyData | null>(initialData);
@@ -177,7 +179,11 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
             <tr>
               <th className="p-2 border border-zinc-700 bg-zinc-800 text-white text-left sticky left-0 z-10">To \ From</th>
               {displayRegions.map(region => (
-                <th key={region} className="p-2 border border-zinc-700 bg-zinc-800 text-white font-medium text-left whitespace-nowrap">
+                <th
+                  key={region}
+                  title={regionNames[region]}
+                  className="p-2 border border-zinc-700 bg-zinc-800 text-white font-medium text-left whitespace-nowrap"
+                >
                   {region}
                 </th>
               ))}
@@ -186,7 +192,10 @@ export default function LatencyMatrix({ initialData }: LatencyMatrixProps) {
           <tbody className={isLoading ? 'opacity-50' : ''}>
             {displayRegions.map(fromRegion => (
               <tr key={fromRegion}>
-                <td className="p-2 border border-zinc-700 bg-zinc-800 text-white font-medium sticky left-0 z-10 whitespace-nowrap">
+                <td
+                  title={regionNames[fromRegion]}
+                  className="p-2 border border-zinc-700 bg-zinc-800 text-white font-medium sticky left-0 z-10 whitespace-nowrap"
+                >
                   {fromRegion}
                 </td>
                 {displayRegions.map(toRegion => {
