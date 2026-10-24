@@ -1,5 +1,9 @@
-.chalice/deployments/
-.chalice/venv/
+# Anchored patterns would only match a .chalice/ at the repo root, but every
+# service keeps its own. Chalice build artifacts and local venvs are
+# regenerable; .chalice/deployed/ is production state and stays tracked.
+**/.chalice/deployments/
+**/.chalice/venv/
+**/.venv/
 __pycache__/
 credentials
 .aider*
