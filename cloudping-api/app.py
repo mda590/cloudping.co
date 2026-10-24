@@ -16,6 +16,11 @@ regions_table = dynamodb.Table('cloudping_regions')
 VALID_PERCENTILES = ['p_10', 'p_25', 'p_50', 'p_75', 'p_90', 'p_98', 'p_99', 'latency']
 VALID_TIMEFRAMES = ['1D', '1W', '1M', '1Y']
 
+# Aggregates are recomputed by the calc cron every 6h and the region table is
+# refreshed on the same cadence, so an hour of staleness is well inside one
+# refresh cycle. Without this, every request re-ran a full DynamoDB scan.
+PUBLIC_CACHE_CONTROL = 'public, max-age=3600'
+
 def validate_params(percentile: Optional[str], timeframe: Optional[str]) -> None:
     """Validate input parameters."""
     if percentile and percentile not in VALID_PERCENTILES:
@@ -127,7 +132,8 @@ def get_latencies():
 
         return Response(body=result,
                       headers={'Content-Type': 'application/json',
-                              'Access-Control-Allow-Origin': '*'})
+                              'Access-Control-Allow-Origin': '*',
+                              'Cache-Control': PUBLIC_CACHE_CONTROL})
 
     except Exception as e:
         return Response(
@@ -265,6 +271,7 @@ def regions():
             headers={
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*',
+                'Cache-Control': PUBLIC_CACHE_CONTROL
             }
         )
 
