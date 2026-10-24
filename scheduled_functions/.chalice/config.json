@@ -6,11 +6,14 @@
     "dev": {}
   },
   "layers": [
-    "arn:aws:lambda:us-east-2:336392948345:layer:AWSSDKPandas-Python311:20"
+    "arn:aws:lambda:us-east-2:336392948345:layer:AWSSDKPandas-Python313:7"
   ],
   "tags": {
     "application": "cloudping",
     "component": "scheduled_functions"
+  },
+  "environment_variables": {
+    "ALERT_SNS_TOPIC_ARN": "arn:aws:sns:us-east-2:506666621600:cloudping-alerts"
   },
   "lambda_timeout": 900,
   "lambda_memory_size": 1024
