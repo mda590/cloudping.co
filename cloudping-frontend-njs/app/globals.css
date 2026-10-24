@@ -3,6 +3,44 @@
 @theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  /*
+    Tailwind v4 redefines its default palette in OKLCH, which shifts the
+    saturated colours noticeably -- green-500 moves from rgb(34,197,94) to
+    rgb(0,201,80), red-500 from rgb(239,68,68) to rgb(251,44,54). Those are
+    the latency heat-map colours, so they are pinned to their v3 values to
+    keep the upgrade purely mechanical. The neutrals are unchanged by v4 but
+    are pinned too, so the whole palette has one source of truth.
+
+    Values taken from tailwindcss 3.4.19's own colour export, not transcribed
+    by hand. Every colour the app actually uses is listed; adding a new
+    utility picks up the v4 colour unless it is pinned here as well.
+
+    Remove this block to adopt the v4 palette -- ideally alongside a
+    deliberate decision about the heat-map colours.
+  */
+  --color-blue-300: #93c5fd;
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+  --color-green-400: #4ade80;
+  --color-green-500: #22c55e;
+  --color-pink-300: #f9a8d4;
+  --color-red-200: #fecaca;
+  --color-red-500: #ef4444;
+  --color-red-900: #7f1d1d;
+  --color-yellow-400: #facc15;
+  --color-yellow-500: #eab308;
+  --color-zinc-200: #e4e4e7;
+  --color-zinc-300: #d4d4d8;
+  --color-zinc-400: #a1a1aa;
+  --color-zinc-500: #71717a;
+  --color-zinc-600: #52525b;
+  --color-zinc-700: #3f3f46;
+  --color-zinc-800: #27272a;
+  --color-zinc-900: #18181b;
+  --color-gray-200: #e5e7eb;
 }
 
 /*
@@ -35,8 +73,16 @@
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+/*
+  In @layer base deliberately. v4 emits its utilities into a native CSS
+  cascade layer, and unlayered rules beat layered ones whatever their
+  specificity -- so an unlayered `body` rule here would override the
+  `bg-zinc-900` utility on <body>, which won on specificity under v3.
+*/
+@layer base {
+  body {
+    color: var(--foreground);
+    background: var(--background);
+    font-family: Arial, Helvetica, sans-serif;
+  }
 }
