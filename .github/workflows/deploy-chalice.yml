@@ -46,10 +46,20 @@ permissions:
 
 env:
   AWS_REGION: us-east-2
-  # The Lambda runtime these services declare. Chalice builds the deployment
-  # package with the interpreter it runs under, so this must match.
-  PYTHON_VERSION: '3.13'
-  ALL_SERVICES: 'cloudping-api scheduled_functions ping_from_region ping-function-deployer account-region-manager'
+  # Chalice builds the deployment package with whatever interpreter it runs
+  # under, and that is what sets the Lambda runtime. Deploying a service with
+  # the wrong one silently changes its runtime -- which for scheduled_functions
+  # would also orphan the AWSSDKPandas-Python313 layer and break numpy/pandas.
+  # These must match the live functions; check with:
+  #   aws lambda list-functions --query 'Functions[].[FunctionName,Runtime]'
+  SERVICE_PYTHON: >-
+    {
+      "cloudping-api": "3.11",
+      "scheduled_functions": "3.13",
+      "ping_from_region": "3.13",
+      "ping-function-deployer": "3.11",
+      "account-region-manager": "3.11"
+    }
 
 jobs:
   select:
@@ -70,6 +80,8 @@ jobs:
           REQUESTED: ${{ inputs.service }}
         run: |
           set -euo pipefail
+
+          ALL_SERVICES=$(echo "$SERVICE_PYTHON" | jq -r 'keys_unsorted | join(" ")')
 
           # A manual run naming one service deploys it whatever the diff says;
           # a manual "all" deploys every service. Only a push consults the diff.
@@ -100,13 +112,24 @@ jobs:
             exit 0
           fi
 
-          JSON=$(printf '%s\n' $SELECTED | jq -R . | jq -cs .)
+          # Each matrix entry carries its own Python version, so a service is
+          # never built with another service's runtime.
+          JSON=$(printf '%s\n' $SELECTED | jq -R . | jq -cs . \
+            | jq -c --argjson map "$SERVICE_PYTHON" 'map({service: ., python: $map[.]})')
+
+          # A service with no mapped runtime would otherwise deploy under the
+          # runner's default Python and quietly change the function's runtime.
+          if echo "$JSON" | jq -e 'any(.[]; .python == null)' >/dev/null; then
+            echo "::error::No Python version mapped in SERVICE_PYTHON for one of:$SELECTED"
+            exit 1
+          fi
+
           echo "services=$JSON" >> "$GITHUB_OUTPUT"
           echo "any=true" >> "$GITHUB_OUTPUT"
           echo "Will deploy:$SELECTED"
 
   deploy:
-    name: Deploy ${{ matrix.service }}
+    name: Deploy ${{ matrix.target.service }} (py${{ matrix.target.python }})
     needs: select
     if: needs.select.outputs.any == 'true'
     runs-on: ubuntu-latest
@@ -115,7 +138,7 @@ jobs:
       max-parallel: 1
       fail-fast: false
       matrix:
-        service: ${{ fromJson(needs.select.outputs.services) }}
+        target: ${{ fromJson(needs.select.outputs.services) }}
     steps:
       # Checks out the branch rather than the triggering commit, so the state
       # file can be committed back. If a newer commit has landed meanwhile this
@@ -126,10 +149,10 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{ matrix.target.python }}
 
       - name: Install chalice and service requirements
-        working-directory: ${{ matrix.service }}
+        working-directory: ${{ matrix.target.service }}
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
@@ -150,7 +173,7 @@ jobs:
 
       - name: Note the REST API id before deploying
         id: before
-        working-directory: ${{ matrix.service }}
+        working-directory: ${{ matrix.target.service }}
         run: |
           set -euo pipefail
           API_ID=''
@@ -161,11 +184,11 @@ jobs:
           echo "api_id=$API_ID" >> "$GITHUB_OUTPUT"
 
       - name: chalice deploy --stage prod
-        working-directory: ${{ matrix.service }}
+        working-directory: ${{ matrix.target.service }}
         run: chalice deploy --stage prod
 
       - name: Fail if the REST API was replaced
-        working-directory: ${{ matrix.service }}
+        working-directory: ${{ matrix.target.service }}
         env:
           BEFORE: ${{ steps.before.outputs.api_id }}
         run: |
@@ -186,7 +209,7 @@ jobs:
 
       - name: Commit the updated deployment state
         env:
-          SERVICE: ${{ matrix.service }}
+          SERVICE: ${{ matrix.target.service }}
         run: |
           set -euo pipefail
           if git diff --quiet -- "$SERVICE/.chalice/deployed/"; then

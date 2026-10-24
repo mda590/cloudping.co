@@ -150,6 +150,40 @@ cd store-region-status-eusc && AWS_PROFILE=eusc chalice deploy --stage prod
 
 ## Python version
 
-The workflow pins Python 3.13 to match the `python3.13` Lambda runtime. Chalice
-builds the deployment package with whatever interpreter it runs under, so CI is
-actually a closer match than a laptop on a newer Python.
+Chalice builds the deployment package with whatever interpreter it runs under,
+and that is what sets the function's Lambda runtime. There is no config key to
+override it, so the interpreter has to match per service -- and the services do
+not agree:
+
+| Service | Runtime |
+| --- | --- |
+| `scheduled_functions` | `python3.13` |
+| `ping_from_region` | `python3.13` |
+| `cloudping-api` | `python3.11` |
+| `ping-function-deployer` | `python3.11` |
+| `account-region-manager` | `python3.11` |
+
+So the `SERVICE_PYTHON` map in the workflow gives each matrix entry its own
+version, and the `select` job fails loudly if a service is missing from it.
+
+Getting this wrong is quiet rather than loud: the deploy succeeds and the
+function's runtime simply changes. For `scheduled_functions` that also orphans
+the `AWSSDKPandas-Python313` layer, so `numpy`/`pandas` stop importing and
+`calculate_avgs` fails on its next cron rather than during the deploy.
+
+The same trap applies to deploying from a laptop. Check before you do:
+
+```bash
+aws lambda list-functions --region us-east-2 \
+  --query 'Functions[].[FunctionName,Runtime]' --output text
+chalice --version   # reports the Python it is running under
+```
+
+If the local Python does not match, `uv` can fetch the right one without
+touching the system install:
+
+```bash
+uv venv --python 3.13 /tmp/venv313
+uv pip install --python /tmp/venv313/bin/python chalice==1.32.0 boto3
+cd scheduled_functions && /tmp/venv313/bin/chalice deploy --stage prod
+```
