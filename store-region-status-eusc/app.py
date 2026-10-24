@@ -25,6 +25,11 @@ EUSC_HUB_REGION = 'eusc-de-east-1'
 MAIN_AWS_DYNAMODB_REGION = 'us-east-2'
 PING_FUNCTION_NAME = 'ping_from_region-eusc-ping'
 
+# SSM in main AWS publishes long names for EUSC regions too, so the display
+# name comes from AWS rather than being hardcoded alongside EUSC_REGIONS.
+MAIN_AWS_SSM_REGION = 'us-east-1'
+LONG_NAME_PATH = '/aws/service/global-infrastructure/regions/{}/longName'
+
 # Known EUSC regions - hardcoded since account:ListRegions is not available in EUSC
 # Update this list as new EUSC regions become available
 EUSC_REGIONS = [
@@ -51,6 +56,59 @@ def get_cross_partition_dynamodb_client():
         aws_access_key_id=creds['access_key_id'],
         aws_secret_access_key=creds['secret_access_key']
     )
+
+
+def get_cross_partition_ssm_client():
+    """
+    Get an SSM client for reading main AWS public parameters from EUSC.
+
+    The global-infrastructure parameters are not published in the EUSC
+    partition, so this reuses the cross-partition credentials.
+    """
+    secrets = boto3.client('secretsmanager')
+    secret = secrets.get_secret_value(SecretId='cloudping/cross-partition-credentials')
+    creds = json.loads(secret['SecretString'])
+
+    return boto3.client(
+        'ssm',
+        region_name=MAIN_AWS_SSM_REGION,
+        endpoint_url=f'https://ssm.{MAIN_AWS_SSM_REGION}.amazonaws.com',
+        aws_access_key_id=creds['access_key_id'],
+        aws_secret_access_key=creds['secret_access_key']
+    )
+
+
+def get_region_long_names(region_names):
+    """
+    Map EUSC region codes to their AWS long names, e.g.
+    eusc-de-east-1 -> AWS European Sovereign Cloud (Germany).
+
+    Returns {} if SSM cannot be reached; a missing long name costs a tooltip in
+    the UI rather than the whole run.
+    """
+    long_names = {}
+
+    try:
+        ssm = get_cross_partition_ssm_client()
+
+        # get_parameters accepts at most 10 names per call
+        for i in range(0, len(region_names), 10):
+            batch = region_names[i:i + 10]
+            response = ssm.get_parameters(
+                Names=[LONG_NAME_PATH.format(region) for region in batch]
+            )
+
+            for param in response['Parameters']:
+                # /aws/service/global-infrastructure/regions/<code>/longName
+                long_names[param['Name'].split('/')[-2]] = param['Value']
+
+            if response.get('InvalidParameters'):
+                print(f"No long name in SSM for: {response['InvalidParameters']}")
+
+    except Exception as e:
+        print(f"Warning: could not load region long names from SSM: {str(e)}")
+
+    return long_names
 
 
 def check_function_exists(region_name):
@@ -180,6 +238,7 @@ def store(event):
 
         # Use hardcoded EUSC regions since account:ListRegions is not available
         enabled_regions = []
+        long_names = get_region_long_names(EUSC_REGIONS)
         current_time = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + "Z"
 
         for region_name in EUSC_REGIONS:
@@ -200,6 +259,13 @@ def store(event):
                 "earliest_data_timestamp": {"S": str(earliest_timestamp)},
                 "most_recent_data_timestamp": {"S": str(most_recent_timestamp)},
             }
+
+            # Omitted when SSM has no name for the region. Both writers put the
+            # whole item, so this has to be set here too or the EUSC rows would
+            # come back without a name.
+            if region_name in long_names:
+                region_info['region_long_name'] = {"S": long_names[region_name]}
+
             print(f"Storing EUSC region info: {region_info}")
 
             enabled_regions.append({

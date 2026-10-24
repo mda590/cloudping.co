@@ -41,6 +41,13 @@
             ],
             "Resource": "*",
             "Effect": "Allow"
+        },
+        {
+            "Action": [
+                "ssm:GetParameters"
+            ],
+            "Resource": "arn:aws:ssm:us-east-1::parameter/aws/service/global-infrastructure/*",
+            "Effect": "Allow"
         }
     ]
 }
