@@ -16,6 +16,14 @@
     by hand. Every colour the app actually uses is listed; adding a new
     utility picks up the v4 colour unless it is pinned here as well.
 
+    sky-400 and red-600 matter beyond consistency: HubSpokeVisualization draws
+    its lines with hard-coded hex (#38bdf8 / #facc15 / #dc2626) while its
+    legend uses the matching utilities. Unpinned, v4 would resolve sky-400 to
+    #00bcff and red-600 to #e7000b, so the legend would no longer agree with
+    the lines it describes -- the exact mismatch #100 set out to fix. The
+    colour-blind separation figures in that PR were measured against these
+    values too.
+
     Remove this block to adopt the v4 palette -- ideally alongside a
     deliberate decision about the heat-map colours.
   */
@@ -29,7 +37,9 @@
   --color-pink-300: #f9a8d4;
   --color-red-200: #fecaca;
   --color-red-500: #ef4444;
+  --color-red-600: #dc2626;
   --color-red-900: #7f1d1d;
+  --color-sky-400: #38bdf8;
   --color-yellow-400: #facc15;
   --color-yellow-500: #eab308;
   --color-zinc-200: #e4e4e7;

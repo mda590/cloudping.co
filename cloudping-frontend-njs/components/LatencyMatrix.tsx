@@ -58,9 +58,9 @@ export default function LatencyMatrix({ initialData, regionNames = {} }: Latency
   }
 
   const getLatencyColor = (latency: number): string => {
-    if (latency < 100) return 'bg-green-500';
-    if (latency < 180) return 'bg-yellow-500';
-    return 'bg-red-500';
+    if (latency < 100) return 'bg-sky-400';
+    if (latency < 180) return 'bg-yellow-400';
+    return 'bg-red-600';
   };
 
   const updateData = async (percentile?: string, timeframe?: string) => {
@@ -232,15 +232,15 @@ export default function LatencyMatrix({ initialData, regionNames = {} }: Latency
         <div className="flex items-center gap-6">
           <span className="font-medium">Latency:</span>
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-500" />
+            <div className="w-2 h-2 rounded-full bg-sky-400" />
             <span>&lt; 100ms</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-yellow-500" />
+            <div className="w-2 h-2 rounded-full bg-yellow-400" />
             <span>100-180ms</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-red-500" />
+            <div className="w-2 h-2 rounded-full bg-red-600" />
             <span>&gt; 180ms</span>
           </div>
         </div>

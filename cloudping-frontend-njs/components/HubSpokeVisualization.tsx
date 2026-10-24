@@ -26,9 +26,9 @@ export default function HubSpokeVisualization({ latencyData }: Props) {
   const radius = 300;
 
   const getLatencyColor = (latency: number) => {
-    if (latency < 100) return '#4ade80';
-    if (latency < 180) return '#fbbf24';
-    return '#ef4444';
+    if (latency < 100) return '#38bdf8'; // sky-400
+    if (latency < 180) return '#facc15'; // yellow-400
+    return '#dc2626'; // red-600
   };
 
   const getLineWidth = (latency: number) => {
@@ -138,15 +138,15 @@ export default function HubSpokeVisualization({ latencyData }: Props) {
       {/* Legend */}
       <div className="mt-4 flex gap-6 text-sm text-zinc-300">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-green-500" />
+          <div className="w-3 h-3 rounded-full bg-sky-400" />
           &lt; 100ms
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-yellow-500" />
+          <div className="w-3 h-3 rounded-full bg-yellow-400" />
           100-180ms
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-red-500" />
+          <div className="w-3 h-3 rounded-full bg-red-600" />
           &gt; 180ms
         </div>
       </div>
