@@ -132,7 +132,7 @@ export default function RegionFilterPanel({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-end">
+    <div className="fixed inset-0 bg-black/50 z-50 flex justify-end">
       <div className="bg-zinc-800 w-96 h-full shadow-lg overflow-y-auto">
         <div className="p-4 border-b border-zinc-700 flex justify-between items-center">
           <h2 className="text-lg font-medium text-white">Region Filter</h2>
@@ -151,11 +151,11 @@ export default function RegionFilterPanel({
               placeholder="Search regions..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1 bg-zinc-700 text-white border border-zinc-600 rounded-l px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              className="flex-1 bg-zinc-700 text-white border border-zinc-600 rounded-l-sm px-3 py-2 text-sm focus:outline-hidden focus:border-blue-500"
             />
             <button 
               onClick={() => setSearchTerm('')}
-              className="bg-zinc-700 text-zinc-400 border border-l-0 border-zinc-600 rounded-r px-3 hover:text-white"
+              className="bg-zinc-700 text-zinc-400 border border-l-0 border-zinc-600 rounded-r-sm px-3 hover:text-white"
             >
               ✕
             </button>
@@ -164,13 +164,13 @@ export default function RegionFilterPanel({
           <div className="mb-4 flex gap-2">
             <button
               onClick={handleSelectAll}
-              className="bg-zinc-700 hover:bg-zinc-600 text-white rounded px-3 py-1 text-sm"
+              className="bg-zinc-700 hover:bg-zinc-600 text-white rounded-sm px-3 py-1 text-sm"
             >
               Select All
             </button>
             <button
               onClick={handleClearAll}
-              className="bg-zinc-700 hover:bg-zinc-600 text-white rounded px-3 py-1 text-sm"
+              className="bg-zinc-700 hover:bg-zinc-600 text-white rounded-sm px-3 py-1 text-sm"
             >
               Clear All
             </button>
@@ -185,7 +185,7 @@ export default function RegionFilterPanel({
               if (filteredRegions.length === 0 && searchTerm) return null;
               
               return (
-                <div key={groupName} className="border border-zinc-700 rounded">
+                <div key={groupName} className="border border-zinc-700 rounded-sm">
                   <div 
                     className="flex items-center p-3 cursor-pointer hover:bg-zinc-700"
                     onClick={() => toggleGroupExpansion(groupName)}
