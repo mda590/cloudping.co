@@ -68,7 +68,9 @@ same goes for `events:*` on `"*"` — the account has unrelated rules like
         "lambda:TagResource",
         "lambda:UntagResource",
         "lambda:ListTags",
-        "lambda:PublishVersion"
+        "lambda:PublishVersion",
+        "lambda:PutFunctionConcurrency",
+        "lambda:DeleteFunctionConcurrency"
       ],
       "Resource": [
         "arn:aws:lambda:us-east-2:506666621600:function:cloudping-api-prod*",
@@ -134,7 +136,8 @@ same goes for `events:*` on `"*"` — the account has unrelated rules like
         "iam:GetRolePolicy",
         "iam:DeleteRolePolicy",
         "iam:ListRolePolicies",
-        "iam:UpdateAssumeRolePolicy"
+        "iam:UpdateAssumeRolePolicy",
+        "iam:DeleteRole"
       ],
       "Resource": [
         "arn:aws:iam::506666621600:role/cloudping-api-prod-*",
@@ -171,7 +174,23 @@ unrelated `-prod-` resource is out. Spot-checked with
 `aws iam simulate-principal-policy`, which returns `implicitDeny` for
 `iam:PutRolePolicy` on a CloudFix role, `lambda:UpdateFunctionCode` on
 `twitter-followers`, `apigateway:DELETE` on another API, `events:DeleteRule` on
-`StopPingInstances`, `dynamodb:DeleteTable` on `PingTest`, and `iam:CreateUser`.
+`StopPingInstances`, `dynamodb:DeleteTable` on `PingTest`, `iam:DeleteRole` on a
+CloudFix role, and `iam:CreateUser`.
+
+Two notes on the specific actions, both learned from the first real run:
+
+`lambda:PutFunctionConcurrency` and `lambda:DeleteFunctionConcurrency` are
+needed by **every** deploy, not just ones that set concurrency. Chalice's
+planner emits one or the other for every Lambda function it manages — with no
+`reserved_concurrency` in the config it calls `DeleteFunctionConcurrency` to
+clear any that might be set. Without them the deploy fails *after* updating the
+role policy and the function code, which is a messy place to stop.
+
+`apigateway:POST` is granted on `/restapis/qq1pwh7bv4/*` but **not** on the
+`/restapis` collection, so CI can create a deployment of the existing API but
+cannot create a new REST API at all. That is deliberate: it makes the failure
+mode behind the REST API id check structurally impossible rather than merely
+detected after the fact.
 
 ### Residual risk
 
@@ -185,6 +204,13 @@ no managed policy — `AdministratorAccess` included — can be attached; Chalic
 only writes inline policies, so it does not need it. And `iam:PassRole` is
 conditioned on `iam:PassedToService: lambda.amazonaws.com`, so these roles
 cannot be handed to EC2 or anything else.
+
+`iam:DeleteRole` *is* granted, scoped to the same five prefixes, so that
+Chalice's sweeper can clean up after a function is removed from a service —
+`lambda:DeleteFunction`, `iam:DeleteRolePolicy` and `events:DeleteRule` were
+already there, and without `DeleteRole` the sweeper would fail half way. It adds
+no real risk on top of what is above: anyone who can rewrite one of these roles'
+inline policies can already do worse than delete it.
 
 Closing it properly means putting a permissions boundary on the eight Lambda
 roles, so an over-broad inline policy has no effect. Chalice's `create_role`
@@ -218,6 +244,38 @@ intact, unlike deleting the role:
 aws iam detach-role-policy --role-name cloudping-github-deploy \
   --policy-arn arn:aws:iam::506666621600:policy/cloudping-github-deploy-policy
 ```
+
+## First run
+
+`account-region-manager` was the first service deployed through this workflow
+([run 40181657668](https://github.com/mda590/cloudping.co/actions/runs/40181657668)),
+chosen because it is `python3.11` — so it exercises the `SERVICE_PYTHON` map —
+and has no REST API, so a mistake could not touch `api.cloudping.co`.
+
+Proven end to end:
+
+| | |
+|---|---|
+| OIDC token exchange | `arn:aws:sts::506666621600:assumed-role/cloudping-github-deploy/GitHubActions` |
+| `chalice deploy` | updated the role policy and the function; Lambda ARN unchanged |
+| Runtime preserved | `python3.11`, handler/memory/timeout unchanged |
+| Role policy | live inline policy byte-identical to `.chalice/policy-prod.json` |
+| Schedule | rule and target intact |
+| REST API guard | ran, took the "no REST API in this service" path |
+| State commit-back | ran, correctly reported "unchanged, nothing to commit" |
+
+Two paths are still unexercised, because this deploy changed no resource
+identities: the REST API id *comparison* (it skipped straight past), and the
+actual commit-and-push of a changed state file. Both need a deploy that moves
+state — in practice a `cloudping-api` deploy.
+
+It took three runs to get there, and the two failures are worth keeping:
+
+1. `ModuleNotFoundError: No module named 'boto3'` — see "Build-time imports".
+2. `AccessDeniedException` on `lambda:DeleteFunctionConcurrency` — see the note
+   under "Permissions". This one failed *after* updating the role policy and the
+   function code, so the deploy was half-applied; re-running after widening the
+   policy settled it, since `chalice deploy` is idempotent.
 
 ## Why the workflow pushes a commit
 
