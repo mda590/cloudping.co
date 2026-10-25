@@ -5,7 +5,7 @@
 | Service | How it deploys |
 |---|---|
 | `cloudping-frontend-njs` | AWS App Runner, auto-deploys on any push to `main` that touches it. Already automated, no workflow needed. |
-| `cloudping-api`, `scheduled_functions`, `ping_from_region`, `ping-function-deployer`, `account-region-manager` | `deploy-chalice.yml`, once the role below exists. Until then, `chalice deploy --stage prod` by hand. |
+| `cloudping-api`, `scheduled_functions`, `ping_from_region`, `ping-function-deployer`, `account-region-manager` | `deploy-chalice.yml` — on a push to `main` touching the service, or `workflow_dispatch` for one service or all. `chalice deploy --stage prod` by hand still works; mind the Python version. |
 | `*-eusc` services | Manual only. See "Why EUSC is excluded". |
 
 ## AWS setup (done)
@@ -289,3 +289,34 @@ uv venv --python 3.13 /tmp/venv313
 uv pip install --python /tmp/venv313/bin/python chalice==1.32.0 boto3
 cd scheduled_functions && /tmp/venv313/bin/chalice deploy --stage prod
 ```
+
+## Build-time imports
+
+Every service's `requirements.txt` is empty, and should stay that way: `boto3`
+ships with the Lambda runtime and `numpy` comes from the `AWSSDKPandas-Python313`
+layer, so pinning either would vendor a second copy into the deployment package
+— and for `scheduled_functions` that copy would shadow the layer's.
+
+But `chalice deploy` imports `app.py` to discover the routes and schedules
+before it builds anything, so every module-scope import still has to resolve on
+the runner. With an empty `requirements.txt` and nothing else installed, the
+deploy dies before it starts:
+
+```
+File "account-region-manager/app.py", line 2, in <module>
+    import boto3
+ModuleNotFoundError: No module named 'boto3'
+```
+
+`scheduled_functions` needs `numpy` as well, because `app.py` imports
+`chalicelib.calculate_avgs`, which imports it at module scope.
+
+The `SERVICE_BUILD_DEPS` map in the workflow installs these per service.
+They are build-time only and never reach production: `chalice` builds the zip
+from `requirements.txt` alone, not from what happens to be installed. Verified
+by packaging `scheduled_functions` from a clean checkout with both installed —
+the resulting zip is 64K and contains only `app.py`, `chalice/` and
+`chalicelib/`, with no `boto3`, `botocore`, `numpy` or `pandas` files.
+
+The same applies to deploying by hand: install `boto3` (and `numpy` for
+`scheduled_functions`) into the venv you run `chalice` from.
