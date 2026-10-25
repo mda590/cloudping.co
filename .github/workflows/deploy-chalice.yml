@@ -60,6 +60,21 @@ env:
       "ping-function-deployer": "3.11",
       "account-region-manager": "3.11"
     }
+  # Chalice imports app.py to discover the routes and schedules, so every
+  # module-scope import has to resolve on the runner. requirements.txt is empty
+  # in all five services on purpose -- boto3 comes with the Lambda runtime and
+  # numpy with the AWSSDKPandas layer, and pinning them would vendor them into
+  # the zip (for scheduled_functions, shadowing the layer). So they are
+  # installed here as build-time-only imports instead. Unlike SERVICE_PYTHON a
+  # missing entry fails loudly, at the import, so there is no guard for it.
+  SERVICE_BUILD_DEPS: >-
+    {
+      "cloudping-api": "boto3",
+      "scheduled_functions": "boto3 numpy",
+      "ping_from_region": "boto3",
+      "ping-function-deployer": "boto3",
+      "account-region-manager": "boto3"
+    }
 
 jobs:
   select:
@@ -153,12 +168,22 @@ jobs:
 
       - name: Install chalice and service requirements
         working-directory: ${{ matrix.target.service }}
+        env:
+          SERVICE: ${{ matrix.target.service }}
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
           # Pinned so a chalice release cannot silently change deploy behaviour.
           pip install 'chalice==1.32.0'
           pip install -r requirements.txt
+          # See SERVICE_BUILD_DEPS above. Left unpinned deliberately: these are
+          # never vendored into the deployment package, so their versions do not
+          # reach production and do not need to track the runtime's.
+          DEPS=$(echo "$SERVICE_BUILD_DEPS" | jq -r --arg s "$SERVICE" '.[$s] // ""')
+          if [ -n "$DEPS" ]; then
+            echo "Build-time imports for $SERVICE: $DEPS"
+            pip install $DEPS
+          fi
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
